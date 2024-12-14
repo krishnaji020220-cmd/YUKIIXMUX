@@ -14,13 +14,13 @@ API_HASH = getenv("API_HASH")
 # ------------------------------------------------------
 BOT_TOKEN = getenv("BOT_TOKEN")
 # -------------------------------------------------------
-OWNER_USERNAME = getenv("OWNER_USERNAME","@Rishunit_hu_bochlik")
+OWNER_USERNAME = getenv("OWNER_USERNAME","ll_hunter_lll")
 # --------------------------------------------------------
-BOT_USERNAME = getenv("BOT_USERNAME" , "@NitiMusicbot")
+BOT_USERNAME = getenv("BOT_USERNAME" , "riyaXmusicbot")
 # --------------------------------------------------------
-BOT_NAME = getenv("BOT_NAME" , "NITI")
+BOT_NAME = getenv("BOT_NAME" , "RIYA MUSIC")
 # ---------------------------------------------------------
-ASSUSERNAME = getenv("ASSUSERNAME" , "KHWAAISH_HOON")
+ASSUSERNAME = getenv("ASSUSERNAME" , "itz_m3_riya")
 # ---------------------------------------------------------
 
 
@@ -53,7 +53,7 @@ HEROKU_API_KEY = getenv("HEROKU_API_KEY")
 # ----------------------------------------------------------------
 UPSTREAM_REPO = getenv(
     "UPSTREAM_REPO",
-    "https://github.com/Thakur740/STRANGER-MUSIC",
+    "https://github.com/Ksdofficial8/RIYA_MUSIC",
 )
 UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "main")
 GIT_TOKEN = getenv(
@@ -67,8 +67,8 @@ GIT_TOKEN = getenv(
 
 # ------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/TR3NDING_MOVI3S")
-SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/boyandgirlgcc")
+SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/Ksd_bot_network")
+SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/team_riya_support")
 # ------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------
 
