@@ -30,8 +30,8 @@ ROY = [
     [
         InlineKeyboardButton(
             text="ᴀᴅᴅ ᴍᴇ",
-            url=f"https://t.me/riyaXmusicbot?startgroup=true"),
-        InlineKeyboardButton(text="ᴜᴘᴅᴀᴛᴇ", url=f"https://t.me/KSD_BOT_NETWORK")
+            url=f"https://t.me/riya_Xmusic_bot?startgroup=true"),
+        InlineKeyboardButton(text="ᴜᴘᴅᴀᴛᴇ", url=f"https://t.me/RIY_NETWORK")
     ],
 ]
 
