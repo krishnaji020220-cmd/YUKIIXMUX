@@ -114,8 +114,8 @@ class Userbot(Client):
         if config.STRING4:
             await self.four.start()
             try:
-                await self.four.join_chat("RIYA_chat_support")
-                await self.one.join_chat("RIYA_NETWORK")
+                await self.four.join_chat("tidal_support")
+                await self.one.join_chat("TIDALXUPDATES")
             except:
                 pass
             assistants.append(4)
@@ -135,8 +135,8 @@ class Userbot(Client):
         if config.STRING5:
             await self.five.start()
             try:
-                await self.five.join_chat("RIYA_NETWORK")
-                await self.one.join_chat("RIYA_chat_support")
+                await self.five.join_chat("tidal_support")
+                await self.one.join_chat("TIDALXUPDATES")
             except:
                 pass
             assistants.append(5)
