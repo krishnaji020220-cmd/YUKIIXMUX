@@ -1,9 +1,9 @@
 <h2 align="center">
-    ─˹ʀɪʏᴧ ꭙ ᴍᴜsɪᴄ˼─
+    ─˹𝐓ɪᴅᴀʟ ꭙ ᴍᴜsɪᴄ˼─
 
 </h2>
 
-[![Typing SVG](https://readme-typing-svg.herokuapp.com/?lines=ㅤ+𝚆𝙴𝙻𝙲𝙾𝙼𝙴+𝚃𝙾+𝚁𝙸𝚈𝙰+𝙼𝚄𝚂𝙸𝙲+𝚁𝙴𝙿𝙾+;ㅤ+𝚃𝙷𝙸𝚂+𝙸𝚂+𝙰+𝙰𝙳𝚅𝙰𝙽𝙲𝙴+𝙼𝚄𝚂𝙸𝙲+𝙱𝙾𝚃;𝙿𝙾𝚆𝙴𝚁𝙴𝙳+𝙱𝚈+☞+TIDAL+MUSIC)](https://github.com/shoaib910385/NEWTIDAL)
+[![Typing SVG](https://readme-typing-svg.herokuapp.com/?lines=ㅤ+𝚆𝙴𝙻𝙲𝙾𝙼𝙴+𝚃𝙾+𝐓ɪᴅᴀʟ+𝙼𝚄𝚂𝙸𝙲+𝚁𝙴𝙿𝙾+;ㅤ+𝚃𝙷𝙸𝚂+𝙸𝚂+𝙰+𝙰𝙳𝚅𝙰𝙽𝙲𝙴+𝙼𝚄𝚂𝙸𝙲+𝙱𝙾𝚃;𝙿𝙾𝚆𝙴𝚁𝙴𝙳+𝙱𝚈+☞+TIDAL+MUSIC)](https://github.com/shoaib910385/NEWTIDAL)
 
 
 
@@ -25,7 +25,7 @@
 
 <p>
 <a href="https://t.me/KsdStringSessionbot"><img src="https://img.shields.io/badge/KSD%20String%20Gen%20Bot-blueviolet?style=for-the-badge&logo=appveyor" width="200""/></a>
-<a href="https://t.me/riyaXmusicbot-Gen"><img src="https://img.shields.io/badge/RIYA%20MUSIC%20Bot-blueviolet?style=for-the-badge&logo=appveyor" width="200""/></a>
+<a href="https://t.me/riyaXmusicbot-Gen"><img src="https://img.shields.io/badge/TIDAL%20MUSIC%20Bot-blueviolet?style=for-the-badge&logo=appveyor" width="200""/></a>
 
 
 <h3 align="center">
@@ -77,5 +77,5 @@ Press `Ctrl+C` when you're done with editing env and `:wq` to save the env<br>
 - For getting out from tmux session : Press `Ctrl+b` and then `d`<br>
 ━━━━━━━━━━━━━━━━━━━━
 ### Contact :
-<a href="https://t.me/ksdofficial84"><img title="Telegram" src="https://img.shields.io/badge/Telegram-%23000000.svg?&style=for-the-badge&logo=telegram&logoColor=61DAFB"></a>
+<a href="https://t.me/HEHE_STALKER"><img title="Telegram" src="https://img.shields.io/badge/Telegram-%23000000.svg?&style=for-the-badge&logo=telegram&logoColor=61DAFB"></a>
 
