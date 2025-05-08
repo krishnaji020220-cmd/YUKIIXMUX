@@ -93,7 +93,7 @@ async def auto_state(_, message):
         
 
 @app.on_chat_member_updated(filters.group, group=-3)
-async def greet_group(_, member: .new_chat_member):
+async def greet_group(_, member: ChatMemberUpdated):
     chat_id = member.chat.id
     A = await wlcm.find_one(chat_id)
     if (
@@ -137,7 +137,7 @@ async def greet_group(_, member: .new_chat_member):
 ┣ 𝟓 ➥ 𝐆ɪᴠᴇ  ʀᴇsᴘᴇᴄᴛ , ᴛᴀᴋᴇ  ʀᴇsᴘᴇᴄᴛ 
 ┗━━━━━━━━━━━━━━━━━      
 
-❖ 𝖯ᴏᴡᴇʀᴇᴅ 𝖡ʏ »  <a href=t.me/hehe_stalker>𝅃𝙎𝙏𝚲𝙇𝙆𝙀𝙍 ꭙ𒌋×͜×</a>
+❖ ᴘᴏᴡᴇʀᴇᴅ  ➥ <a href=t.me/hehe_stalker>𝅃𝙎𝙏𝚲𝙇𝙆𝙀𝙍 ꭙ𒌋×͜×</a>
 """,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f"✧ ᴀᴅᴅ ᴍᴇ ɪɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ ✧", url=f"https://t.me/{app.username}?startgroup=true")]])
         )
@@ -159,6 +159,6 @@ NEW GROUP
 NAME: {message.chat.title}
 ID: {message.chat.id}
 USERNAME: @{message.chat.username}
-𝖯ᴏᴡᴇʀᴇᴅ 𝖡ʏ » <a href=t.me/hehe_stalker>𝅃𝙎𝙏𝚲𝙇𝙆𝙀𝙍 ꭙ𒌋×͜×</a>
+❖ ᴘᴏᴡᴇʀᴇᴅ  ➥ <a href=t.me/hehe_stalker>𝅃𝙎𝙏𝚲𝙇𝙆𝙀𝙍 ꭙ𒌋×͜×</a>
 ➖➖➖➖➖➖➖➖➖➖➖➖
 """)
