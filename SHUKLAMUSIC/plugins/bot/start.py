@@ -30,12 +30,8 @@ from strings import get_string
 YUMI_PICS = [
 "https://files.catbox.moe/v0v41s.jpg",
 "https://files.catbox.moe/v0v41s.jpg",
-"https://graph.org/file/68a5cbe49a832ec1092f6-187108984c936e8e5c.jpg",
-"https://graph.org/file/68a5cbe49a832ec1092f6-187108984c936e8e5c.jpg",
-"https://graph.org/file/68a5cbe49a832ec1092f6-187108984c936e8e5c.jpg",
-"https://graph.org/file/68a5cbe49a832ec1092f6-187108984c936e8e5c.jpg",
-"https://graph.org/file/68a5cbe49a832ec1092f6-187108984c936e8e5c.jpg",
-"https://graph.org/file/68a5cbe49a832ec1092f6-187108984c936e8e5c.jpg",
+"https://files.catbox.moe/sbaei4.jpg",
+"https://files.catbox.moe/csyzob.jpg",
 
 ]
 
