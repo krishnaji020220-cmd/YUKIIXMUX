@@ -22,7 +22,7 @@ from SHUKLAMUSIC.utils.database import (
 from SHUKLAMUSIC.utils.decorators.language import LanguageStart
 from SHUKLAMUSIC.utils.formatters import get_readable_time
 from SHUKLAMUSIC.utils.inline import help_pannel, private_panel, start_panel
-from config import BANNED_USERS
+from config import BANNED_USERS, GREET
 from strings import get_string
 
 
@@ -40,6 +40,20 @@ YUMI_PICS = [
 @app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
 @LanguageStart
 async def start_pm(client, message: Message, _):
+
+    loading_1 = await message.reply_text(random.choice(GREET))
+    await add_served_user(message.from_user.id)
+    
+    await loading_1.edit_text("<b>ʟᴏᴀᴅɪɴɢ.</b>")
+    await asyncio.sleep(0.1)
+    await loading_1.edit_text("<b>ʟᴏᴀᴅɪɴɢ..</b>")
+    await asyncio.sleep(0.1)
+    await loading_1.edit_text("<b>ʟᴏᴀᴅɪɴɢ...</b>")
+    await asyncio.sleep(0.1)
+    await loading_1.edit_text("<b>ʜєʏ ʙᴧʙʏ! 💞</b>")
+    await asyncio.sleep(0.1)
+    await loading_1.delete()
+    
     await add_served_user(message.from_user.id)
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
