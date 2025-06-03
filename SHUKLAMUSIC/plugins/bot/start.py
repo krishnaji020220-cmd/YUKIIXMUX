@@ -22,7 +22,7 @@ from SHUKLAMUSIC.utils.database import (
 from SHUKLAMUSIC.utils.decorators.language import LanguageStart
 from SHUKLAMUSIC.utils.formatters import get_readable_time
 from SHUKLAMUSIC.utils.inline import help_pannel, private_panel, start_panel
-from config import BANNED_USERS, GREET
+from config import BANNED_USERS
 from strings import get_string
 
 
@@ -33,6 +33,9 @@ YUMI_PICS = [
 "https://files.catbox.moe/sbaei4.jpg",
 "https://files.catbox.moe/csyzob.jpg",
 
+]
+GREET = [
+    "💞", "🥂", "🔍", "🧪", "🥂", "⚡️", "🔥",
 ]
 
 
