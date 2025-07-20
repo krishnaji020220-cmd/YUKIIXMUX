@@ -163,7 +163,7 @@ async def start_gp(client, message: Message, _):
 async def about_command(client: Client, message: Message):
     await message.reply_photo(
         random.choice(YUMI_PICS),
-        caption= message.reply_text(random.choice(PROMO)).format(app.mention, get_readable_time(uptime)),
+        caption= await message.reply_text(random.choice(PROMO)).format(app.mention, get_readable_time(uptime)),
         reply_markup=InlineKeyboardMarkup(message.PROMO)
     )
    
