@@ -156,6 +156,27 @@ async def start_gp(client, message: Message, _):
         reply_markup=InlineKeyboardMarkup(out),
     )
 
+@app.on_message(filters.command("promo") & filters.private)
+async def about_command(client: Client, message: Message):
+    await message.reply_text(
+        Data.PROMO,
+        reply_markup=InlineKeyboardMarkup(Data.home_buttons)
+    )
+   
+home_buttons = [
+        generate_single_button,
+        [InlineKeyboardButton("ʀᴇᴛᴜʀɴ ʜᴏᴍᴇ", callback_data="home")]
+    ]
+
+@app.on_callback_query()
+async def callback_handler(client: Client, query: CallbackQuery):
+    data = query.data
+    if data == "home":
+        await query.message.edit_media(
+            media=InputMediaPhoto(YUMI_PICS, caption=Data.START),
+            reply_markup=InlineKeyboardMarkup(Data.buttons)
+        )
+
 @app.on_message(filters.new_chat_members, group=-1)
 async def welcome(client, message: Message):
     for member in message.new_chat_members:
