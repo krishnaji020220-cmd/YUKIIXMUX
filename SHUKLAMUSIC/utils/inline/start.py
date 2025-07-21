@@ -25,7 +25,7 @@ def private_panel(_):
         ],
         [
             InlineKeyboardButton(text=_["S_B_4"], callback_data="settings_back_helper"),
-            InlineKeyboardButton("˹ᴘʀᴏϻᴏ˼", callback_data="S_B_10"),
+            InlineKeyboardButton("˹ᴛιᴅᴀʟ ᴛᴜɴᴇs˼♪", url=f"http://t.me/TidalXMusicBot/tidaltunes"),
         ],
         [
             InlineKeyboardButton(text=_["S_B_6"], url=config.SUPPORT_CHANNEL),
