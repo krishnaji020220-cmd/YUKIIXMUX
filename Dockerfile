@@ -1,12 +1,9 @@
-FROM nikolaik/python-nodejs:python3.10-nodejs19
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
+FROM python:3.9.7-slim-buster
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get install git curl python3-pip ffmpeg -y
+RUN pip3 install -U pip
+RUN python3 -m pip install --upgrade pip
 COPY . /app/
 WORKDIR /app/
-RUN pip3 install --no-cache-dir -U -r requirements.txt
-
-CMD bash start
+RUN pip3 install -U -r requirements.txt
+CMD ["bash","start.sh"]
