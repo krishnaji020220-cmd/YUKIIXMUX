@@ -18,7 +18,7 @@ TRENDING_SONGS = [
     "https://www.youtube.com/watch?v=GzU8KqOY8YA",  # Zaroorat – Ek Villain
 ]
 
-@app.on_message(filters.command("autoplay", prefixes=["/", "!", "."]) & filters.group & ~BANNED_USERS)
+@app.on_message(filters.command("autoplay", "autoqueue", prefixes=["/", "!", "."]) & filters.group & ~BANNED_USERS)
 async def autoplay_handler(client, message: Message):
     chat_id = message.chat.id
     user = message.from_user
