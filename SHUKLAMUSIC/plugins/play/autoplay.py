@@ -18,7 +18,14 @@ TRENDING_SONGS = [
     "https://www.youtube.com/watch?v=GzU8KqOY8YA",  # Zaroorat – Ek Villain
 ]
 
-@app.on_message(filters.command("autoplay", "autoqueue", prefixes=["/", "!", "."]) & filters.group & ~BANNED_USERS)
+@app.on_message(
+    filters.command(
+        ["autoplay", "autoqueue"],
+        prefixes=["/", "!", "."]
+    )
+    & filters.group
+    & ~BANNED_USERS
+)
 async def autoplay_handler(client, message: Message):
     chat_id = message.chat.id
     user = message.from_user
@@ -29,14 +36,14 @@ async def autoplay_handler(client, message: Message):
 
     for url in TRENDING_SONGS:
         try:
-            details, _ = await YouTube.track(url)
+            details, file = await YouTube.track(url)
         except Exception as e:
             await msg.edit_text(f"❌ Failed to fetch a song.\n`{e}`")
             continue
 
         try:
             await stream(
-                _,
+                file,
                 msg,
                 user_id,
                 details,
