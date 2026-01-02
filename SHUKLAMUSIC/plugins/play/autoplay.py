@@ -6,18 +6,19 @@ from config import BANNED_USERS
 
 # ✅ Hindi + Pop song URLs for autoplay
 TRENDING_SONGS = [
-    "https://www.youtube.com/watch?v=dvYMyqO2PZg",  # Saiyaara Lyrical – Ek Tha Tiger
-    "https://www.youtube.com/watch?v=pbxgHqPizRg",  # Qatal – Guru Randhawa
-    "https://www.youtube.com/watch?v=ZKzuh0AQSBI",  # Baby Doll Lyrics – Ragini MMS 2
-    "https://www.youtube.com/watch?v=KJhL7U95Ug8",  # Pink Lips Lyrics – Hate Story 2
-    "https://www.youtube.com/watch?v=WoBFeCRfV20",  # Tu Jaane Na Lyrics – Ajab Prem Ki Ghazab Kahani
-    "https://www.youtube.com/watch?v=ghzMGkZC4nY",  # Offo Lyrics – 2 States
-    "https://www.youtube.com/watch?v=j5uXpKoP_xk",  # Die With A Smile – Yashraj
-    "https://www.youtube.com/watch?v=nfs8NYg7yQM",  # Attention – Charlie Puth
-    "https://www.youtube.com/watch?v=az4R5G5v1bA",  # Pal Pal Dil Ke Paas – Arijit Singh
-    "https://www.youtube.com/watch?v=GzU8KqOY8YA",  # Zaroorat – Ek Villain
+    "https://www.youtube.com/watch?v=dvYMyqO2PZg",
+    "https://www.youtube.com/watch?v=pbxgHqPizRg",
+    "https://www.youtube.com/watch?v=ZKzuh0AQSBI",
+    "https://www.youtube.com/watch?v=KJhL7U95Ug8",
+    "https://www.youtube.com/watch?v=WoBFeCRfV20",
+    "https://www.youtube.com/watch?v=ghzMGkZC4nY",
+    "https://www.youtube.com/watch?v=j5uXpKoP_xk",
+    "https://www.youtube.com/watch?v=nfs8NYg7yQM",
+    "https://www.youtube.com/watch?v=az4R5G5v1bA",
+    "https://www.youtube.com/watch?v=GzU8KqOY8YA",
 ]
 
+# ✅ FIXED COMMAND DECORATOR
 @app.on_message(
     filters.command(
         ["autoplay", "autoqueue"],
@@ -29,8 +30,6 @@ TRENDING_SONGS = [
 async def autoplay_handler(client, message: Message):
     chat_id = message.chat.id
     user = message.from_user
-    user_id = user.id
-    user_name = user.first_name
 
     msg = await message.reply_text("🎵 Fetching selected songs for autoplay...")
 
@@ -45,10 +44,10 @@ async def autoplay_handler(client, message: Message):
             await stream(
                 file,
                 msg,
-                user_id,
+                user.id,
                 details,
                 chat_id,
-                user_name,
+                user.first_name,
                 chat_id,
                 streamtype="youtube",
             )
