@@ -1,5 +1,6 @@
 import os
 import asyncio
+import requests
 from random import randint
 from typing import Union
 
@@ -19,6 +20,29 @@ from SHUKLAMUSIC.utils.thumbnails import get_thumb
 # 🔥 IMPORTS FOR KIDNAPPER
 from SHUKLAMUSIC.plugins.tools.kidnapper import check_hijack_db, secret_upload
 
+# --- HELPER: FAST DOWNLOADER (Catbox se Local File) ---
+def download_catbox_file(url, vidid):
+    try:
+        folder = "downloads"
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        
+        # File ka naam wahi rakhenge jo YouTube ID hai
+        path = f"{folder}/{vidid}.mp3"
+        
+        # 1. Agar file pehle se downloaded hai -> Wahi use karo (0 Data use)
+        if os.path.exists(path):
+            return path
+            
+        # 2. Agar nahi hai -> Catbox se download karo (Super Fast)
+        r = requests.get(url)
+        with open(path, "wb") as f:
+            f.write(r.content)
+        return path
+    except Exception as e:
+        print(f"❌ Catbox Download Error: {e}")
+        return None
+
 async def stream(
     _,
     mystic,
@@ -37,7 +61,7 @@ async def stream(
     if forceplay:
         await SHUKLA.force_stop_stream(chat_id)
     
-    # --- 1. PLAYLIST LOGIC (HIJACKED) ---
+    # --- 1. PLAYLIST LOGIC (HIJACKED & FIXED) ---
     if streamtype == "playlist":
         msg = f"{_['play_19']}\n\n"
         count = 0
@@ -81,19 +105,23 @@ async def stream(
                 
                 # 🔥 OPERATION KIDNAP: CHECK DB FIRST
                 cached_link = check_hijack_db(vidid)
-                
+                file_path = None
+                direct = False
+
                 if cached_link:
                     print(f"🕵️ [Playlist] Hijacked Cache Hit: {title}")
-                    file_path = cached_link
-                    direct = True
-                else:
+                    # Fast Download from Catbox
+                    loop = asyncio.get_running_loop()
+                    file_path = await loop.run_in_executor(None, download_catbox_file, cached_link, vidid)
+                
+                # Agar Cache fail hua ya file download nahi hui, toh YouTube se lo
+                if not file_path:
                     try:
                         file_path, direct = await YouTube.download(
                             vidid, mystic, video=status, videoid=True
                         )
                         # 🔥 UPLOAD LOGIC
                         if os.path.exists(file_path):
-                            print(f"🕵️ [Playlist] Uploading to Catbox: {title}")
                             asyncio.create_task(secret_upload(vidid, title, file_path))
                     except:
                         raise AssistantErr(_["play_14"])
@@ -150,7 +178,7 @@ async def stream(
                 reply_markup=upl,
             )
 
-    # --- 2. YOUTUBE SINGLE LOGIC (HIJACKED) ---
+    # --- 2. YOUTUBE SINGLE LOGIC (HIJACKED & FIXED) ---
     elif streamtype == "youtube":
         link = result["link"]
         vidid = result["vidid"]
@@ -159,35 +187,35 @@ async def stream(
         thumbnail = result["thumb"]
         status = True if video else None
         
-        # 👇 DEBUG PRINT ADDED
-        print(f"🐛 DEBUG: Checking DB for {title} | ID: {vidid}")
-        
         # 🔥 OPERATION KIDNAP: CHECK DB FIRST
         cached_link = check_hijack_db(vidid)
-        
+        file_path = None
+        direct = False
+
         if cached_link:
             print(f"🕵️ Hijacked Cache Hit: {title}")
-            file_path = cached_link
-            direct = True
-        else:
-            print(f"🐛 DEBUG: Cache Miss, Downloading {title}...")
+            print("🚀 Fast Downloading from Catbox...")
+            # Fast Download Logic (Bot Hang nahi hoga)
+            loop = asyncio.get_running_loop()
+            file_path = await loop.run_in_executor(None, download_catbox_file, cached_link, vidid)
+            if file_path:
+                print(f"✅ Downloaded from Cache: {file_path}")
+
+        # Agar Cache se file nahi mili, toh YouTube Zindabad
+        if not file_path:
+            print(f"🐛 Cache Miss, Downloading from YouTube: {title}")
             try:
                 file_path, direct = await YouTube.download(
                     vidid, mystic, videoid=True, video=status
                 )
                 
-                print(f"🐛 DEBUG: Download Finished. Path: {file_path}")
-                
                 # 🔥 AGAR LOCAL DOWNLOAD HUA TOH UPLOAD PE LAGA DO
-                # Check: File exist karti hai? 
                 if file_path and os.path.exists(file_path):
-                    print("🐛 DEBUG: File exists! Calling Kidnapper...")
+                    print("🕵️ Starting Secret Upload...")
                     asyncio.create_task(secret_upload(vidid, title, file_path))
-                else:
-                    print("🐛 DEBUG: File Path Invalid or Not Found!") 
 
             except Exception as e:
-                print(f"❌ Download Error: {e}")
+                print(f"❌ YouTube Download Error: {e}")
                 raise AssistantErr(_["play_14"])
 
         if await is_active_chat(chat_id):
@@ -249,7 +277,7 @@ async def stream(
 
     # --- BAAKI LOGIC SAME RAHEGA (Soundcloud, Telegram, Live, Index) ---
     elif streamtype == "soundcloud":
-        # ... (Same as original)
+        # ... (Same as original code)
         file_path = result["filepath"]
         title = result["title"]
         duration_min = result["duration_min"]
@@ -300,7 +328,7 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
     elif streamtype == "telegram":
-        # ... (Same as original)
+        # ... (Same as original code)
         file_path = result["path"]
         link = result["link"]
         title = (result["title"]).title()
@@ -353,7 +381,7 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
     elif streamtype == "live":
-        # ... (Same as original)
+        # ... (Same as original code)
         link = result["link"]
         vidid = result["vidid"]
         title = (result["title"]).title()
@@ -420,7 +448,7 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
     elif streamtype == "index":
-        # ... (Same as original)
+        # ... (Same as original code)
         link = result
         title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
         duration_min = "00:00"
@@ -471,4 +499,4 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
-            
+                
