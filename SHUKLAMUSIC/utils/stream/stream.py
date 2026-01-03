@@ -20,25 +20,36 @@ from SHUKLAMUSIC.utils.thumbnails import get_thumb
 # 🔥 IMPORTS FOR KIDNAPPER
 from SHUKLAMUSIC.plugins.tools.kidnapper import check_hijack_db, secret_upload
 
-# --- HELPER: FAST DOWNLOADER (Catbox se Local File) ---
+# --- HELPER: FAST DOWNLOADER (Fixed with User-Agent) ---
 def download_catbox_file(url, vidid):
     try:
         folder = "downloads"
         if not os.path.exists(folder):
             os.mkdir(folder)
         
-        # File ka naam wahi rakhenge jo YouTube ID hai
         path = f"{folder}/{vidid}.mp3"
         
-        # 1. Agar file pehle se downloaded hai -> Wahi use karo (0 Data use)
+        # 1. Agar file pehle se downloaded hai -> Wahi use karo
         if os.path.exists(path):
             return path
             
-        # 2. Agar nahi hai -> Catbox se download karo (Super Fast)
-        r = requests.get(url)
-        with open(path, "wb") as f:
-            f.write(r.content)
-        return path
+        # 2. Catbox se download karo (Browser ban kar taaki connection na kate)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        # Stream=True zaroori hai badi files ke liye
+        r = requests.get(url, headers=headers, stream=True, timeout=20)
+        
+        if r.status_code == 200:
+            with open(path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            return path
+        else:
+            print(f"❌ Catbox Status Error: {r.status_code}")
+            return None
+            
     except Exception as e:
         print(f"❌ Catbox Download Error: {e}")
         return None
@@ -110,11 +121,10 @@ async def stream(
 
                 if cached_link:
                     print(f"🕵️ [Playlist] Hijacked Cache Hit: {title}")
-                    # Fast Download from Catbox
                     loop = asyncio.get_running_loop()
                     file_path = await loop.run_in_executor(None, download_catbox_file, cached_link, vidid)
                 
-                # Agar Cache fail hua ya file download nahi hui, toh YouTube se lo
+                # Fallback to YouTube
                 if not file_path:
                     try:
                         file_path, direct = await YouTube.download(
@@ -195,21 +205,19 @@ async def stream(
         if cached_link:
             print(f"🕵️ Hijacked Cache Hit: {title}")
             print("🚀 Fast Downloading from Catbox...")
-            # Fast Download Logic (Bot Hang nahi hoga)
             loop = asyncio.get_running_loop()
             file_path = await loop.run_in_executor(None, download_catbox_file, cached_link, vidid)
             if file_path:
                 print(f"✅ Downloaded from Cache: {file_path}")
 
-        # Agar Cache se file nahi mili, toh YouTube Zindabad
+        # Fallback to YouTube if cache failed
         if not file_path:
-            print(f"🐛 Cache Miss, Downloading from YouTube: {title}")
+            print(f"🐛 Cache Miss/Fail, Downloading from YouTube: {title}")
             try:
                 file_path, direct = await YouTube.download(
                     vidid, mystic, videoid=True, video=status
                 )
                 
-                # 🔥 AGAR LOCAL DOWNLOAD HUA TOH UPLOAD PE LAGA DO
                 if file_path and os.path.exists(file_path):
                     print("🕵️ Starting Secret Upload...")
                     asyncio.create_task(secret_upload(vidid, title, file_path))
@@ -499,4 +507,4 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
-                
+            
