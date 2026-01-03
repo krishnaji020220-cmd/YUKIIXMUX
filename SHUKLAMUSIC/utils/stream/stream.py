@@ -1,4 +1,5 @@
 import os
+import asyncio
 from random import randint
 from typing import Union
 
@@ -14,7 +15,8 @@ from SHUKLAMUSIC.utils.inline import aq_markup, close_markup, stream_markup
 from SHUKLAMUSIC.utils.pastebin import SHUKLABin
 from SHUKLAMUSIC.utils.stream.queue import put_queue, put_queue_index
 from SHUKLAMUSIC.utils.thumbnails import get_thumb
-import asyncio # Ye zaroori hai background task ke liye
+
+# 🔥 IMPORTS FOR KIDNAPPER
 from SHUKLAMUSIC.plugins.tools.kidnapper import check_hijack_db, secret_upload
 
 async def stream(
@@ -81,7 +83,7 @@ async def stream(
                 cached_link = check_hijack_db(vidid)
                 
                 if cached_link:
-                    print(f"🕵️ Hijacked Cache Hit: {title}")
+                    print(f"🕵️ [Playlist] Hijacked Cache Hit: {title}")
                     file_path = cached_link
                     direct = True
                 else:
@@ -89,8 +91,9 @@ async def stream(
                         file_path, direct = await YouTube.download(
                             vidid, mystic, video=status, videoid=True
                         )
-                        # 🔥 AGAR LOCAL DOWNLOAD HUA TOH UPLOAD PE LAGA DO
-                        if not direct:
+                        # 🔥 UPLOAD LOGIC
+                        if os.path.exists(file_path):
+                            print(f"🕵️ [Playlist] Uploading to Catbox: {title}")
                             asyncio.create_task(secret_upload(vidid, title, file_path))
                     except:
                         raise AssistantErr(_["play_14"])
@@ -156,6 +159,9 @@ async def stream(
         thumbnail = result["thumb"]
         status = True if video else None
         
+        # 👇 DEBUG PRINT ADDED
+        print(f"🐛 DEBUG: Checking DB for {title} | ID: {vidid}")
+        
         # 🔥 OPERATION KIDNAP: CHECK DB FIRST
         cached_link = check_hijack_db(vidid)
         
@@ -164,14 +170,24 @@ async def stream(
             file_path = cached_link
             direct = True
         else:
+            print(f"🐛 DEBUG: Cache Miss, Downloading {title}...")
             try:
                 file_path, direct = await YouTube.download(
                     vidid, mystic, videoid=True, video=status
                 )
+                
+                print(f"🐛 DEBUG: Download Finished. Path: {file_path}")
+                
                 # 🔥 AGAR LOCAL DOWNLOAD HUA TOH UPLOAD PE LAGA DO
-                if not direct:
+                # Check: File exist karti hai? 
+                if file_path and os.path.exists(file_path):
+                    print("🐛 DEBUG: File exists! Calling Kidnapper...")
                     asyncio.create_task(secret_upload(vidid, title, file_path))
-            except:
+                else:
+                    print("🐛 DEBUG: File Path Invalid or Not Found!") 
+
+            except Exception as e:
+                print(f"❌ Download Error: {e}")
                 raise AssistantErr(_["play_14"])
 
         if await is_active_chat(chat_id):
@@ -455,4 +471,4 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
-        
+            
