@@ -51,8 +51,8 @@ class Userbot(Client):
         if config.STRING1:
             await self.one.start()
             try:
-                await self.one.join_chat("tidal_support")
-                await self.one.join_chat("TIDALXUPDATES")
+                await self.one.join_chat("heartstealer_x")
+                await self.one.join_chat("heartstealer_x100")
             except:
                 pass
             assistants.append(1)
