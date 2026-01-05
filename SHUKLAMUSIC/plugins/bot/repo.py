@@ -7,7 +7,7 @@ import httpx
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 start_txt = """
-❥ ωєℓ¢σмє тσ  ˹ 𝐓ɪᴅᴀʟ ꭙ 𝐌ᴜꜱɪᴄ˼ 🥀 
+❥ ωєℓ¢σмє тσ  ˹ 𝄞 𖦹 Mᴇʟᴏᴅʏ ✘ ᴍᴜsɪᴄ 🥀 
 
 ❥ ʀᴇᴘᴏ ᴄʜᴀᴀʜɪʏe ᴛᴏ ʙᴏᴛ ᴋᴏ 
 
@@ -15,7 +15,7 @@ start_txt = """
 
 ❥ ᴀᴅᴍɪɴ ʙᴀɴᴏ ᴀᴜʀ sᴄʀᴇᴇɴsʜᴏᴛ 
      
-❥ ᴏᴡɴᴇʀ @HEHE_STALKER ᴋᴏ ᴅᴏ ғɪʀ ʀᴇᴘᴏ ᴍɪʟ sᴀᴋᴛɪ ʜᴀɪ 
+❥ ᴏᴡɴᴇʀ @Kaito_3_2 ᴋᴏ ᴅᴏ ғɪʀ ʀᴇᴘᴏ ᴍɪʟ sᴀᴋᴛɪ ʜᴀɪ 
 
 """
 
@@ -26,17 +26,17 @@ start_txt = """
 async def start(_, msg):
     buttons = [
         [ 
-          InlineKeyboardButton("♡ α∂∂ иσω ♡", url=f"https://t.me/TIDALXMUSICBOT?startgroup=true")
+          InlineKeyboardButton("♡ α∂∂ иσω ♡", url=f"https://t.me/Yukiimusicbot?startgroup=true")
         ],
         [
-          InlineKeyboardButton("ѕυρρσɾƚ", url="https://t.me/TIDAL_SUPPORT"),
-          InlineKeyboardButton("×͜×┊𝅃𝙎𝙏𝚲𝙇𝙆𝙀𝙍 ꭙ𒌋", url="https://t.me/HEHE_STALKER"),
+          InlineKeyboardButton("ѕυρρσɾƚ", url="https://t.me/heartstealer_x"),
+          InlineKeyboardButton(" 𝐒 𝛖 𝐝 ֟፝ᥱ 𝛆 𝛒 </𝟑𒌋", url="https://t.me/Kaito_3_2"),
           ],
                [
-                InlineKeyboardButton("ᴏᴛʜᴇʀ ʙᴏᴛs", url=f"https://t.me/TIDALXUPDATES"),
+                InlineKeyboardButton("ᴏᴛʜᴇʀ ʙᴏᴛs", url=f"https://t.me/heartstealer_x"),
 ],
 [
-InlineKeyboardButton("ᴄʜᴇᴄᴋ", url=f"https://t.me/TIDALXMUSICBOT"),
+InlineKeyboardButton("ᴄʜᴇᴄᴋ", url=f"https://t.me/Yukiimusicbot"),
 
         ]]
     
