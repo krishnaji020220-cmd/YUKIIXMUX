@@ -4,6 +4,7 @@
 # ᴘʀᴏᴛᴇᴄᴛᴇᴅ ʙʏ ʜᴇʟʟғɪʀᴇ sᴇᴄᴜʀɪᴛʏ.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+import os
 import requests
 import math
 import urllib.parse
@@ -145,19 +146,33 @@ async def tv_callback(client, query: CallbackQuery):
         await query.message.edit_text(f"⏳ **HellfireDevs:** Bypassing blocks & Loading `{ch_name}`..." + WATERMARK)
         
         try:
-            # 🔥 MAGIC: Dynamic FFmpeg Proxy link with .m3u8 extension
+            # 🔥 SWITCH/SKIP LOGIC: Agar pehle se kuch chal raha hai toh usko forcefully band karo
+            try:
+                await SHUKLA.force_stop_stream(chat_id)
+            except Exception:
+                pass # Agar pehle se kuch nahi chal raha, toh error ignore karo
+
+            # 🔥 DYNAMIC PROXY LINK
             safe_url = urllib.parse.quote(raw_url, safe='')
             local_bypass_link = f"http://127.0.0.1:5000/stream.m3u8?url={safe_url}"
 
-            # 🚀 DIRECT STRING PASS KARO (stream.py isko natively utha lega)
+            # 🧠 MASTERSTROKE TRICK: Bypassing the Errno 2 File Check forever!
+            # Server pe folder bana ke physical file banayenge har chat ke liye
+            os.makedirs("downloads", exist_ok=True)
+            file_path = f"downloads/live_tv_{chat_id}.m3u8"
+            
+            with open(file_path, "w") as f:
+                f.write(f"#EXTM3U\n#EXTINF:-1, {ch_name}\n{local_bypass_link}\n")
+
+            # 🚀 Engine ko path denge (File format mein), toh wo 100% bypass ho jayega
             await SHUKLA.join_call(
                 chat_id, 
                 chat_id, 
-                local_bypass_link, 
+                file_path, 
                 video=True
             )
             
-            text = f"✅ **Hellfire TV Live!**\n\n📺 **Channel:** {ch_name}\n🛡️ Advanced Anti-Block Active!" + WATERMARK
+            text = f"✅ **Hellfire TV Live!**\n\n📺 **Channel:** {ch_name}\n🚀 Stream Skipped & Active!" + WATERMARK
             await query.message.edit_text(
                 text,
                 reply_markup=InlineKeyboardMarkup([
@@ -172,5 +187,5 @@ async def tv_callback(client, query: CallbackQuery):
                     [InlineKeyboardButton(text="🔄 Retry", callback_data=f"retrytv_{category}_{page}_{ch_idx}")],
                     [InlineKeyboardButton(text="🔙 Back", callback_data=f"tvcat_{category}_{page}")]
                 ])
-            )
-            
+)
+        
