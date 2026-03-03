@@ -26,7 +26,7 @@ def small_caps(text: str) -> str:
     small_caps_dict = {
         'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ',
         'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ',
-        'q': 'ǫ', 'r': 'ʀ', 's': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'x', 'x': 'x',
+        'q': 'ǫ', 'r': 'ʀ', 's': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x',
         'y': 'ʏ', 'z': 'ᴢ'
     }
     return "".join(small_caps_dict.get(c, c) for c in text.lower())
@@ -160,8 +160,8 @@ async def tv_callback(client, query: CallbackQuery):
             pipe_file = f"temp_pipe_{abs(chat_id)}.py"
             log_file = f"pipe_log_{abs(chat_id)}.txt"
 
-            # 🔥 FLASK SCRIPT (Ping route aur threaded=True added!)
-                        pipe_code = f"""import subprocess
+            # 🔥 FLASK SCRIPT (Ping route, Chrome Headers & Threaded enabled)
+            pipe_code = f"""import subprocess
 from flask import Flask, Response
 import logging
 
@@ -177,19 +177,14 @@ def ping():
 @app.route('/{clean_name}.m3u8')
 def stream_tv():
     master = "{raw_url}"
-    # 🔥 THE ULTIMATE BYPASS: Reconnect aur protocol whitelist add kiya
     cmd = [
-        "ffmpeg", 
-        "-hide_banner", "-loglevel", "error",
+        "ffmpeg", "-hide_banner", "-loglevel", "error",
         "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
         "-headers", "Referer: https://google.com/\\r\\n", 
         "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "-allowed_extensions", "ALL",
         "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-        "-i", master, 
-        "-c", "copy", 
-        "-f", "mpegts", 
-        "pipe:1"
+        "-i", master, "-c", "copy", "-f", "mpegts", "pipe:1"
     ]
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     return Response(process.stdout, mimetype="video/MP2T")
@@ -203,17 +198,16 @@ if __name__ == '__main__':
             os.system(f"pkill -f {pipe_file}")
             time.sleep(0.5)
 
-            # FLASK KO START KARO AUR LOG SAVE KARO
+            # FLASK KO START KARO (sys.executable fix included)
             os.system(f"nohup {sys.executable} {pipe_file} > {log_file} 2>&1 &")
             
-            # 🔥 AB HUM /ping PAR CHECK KARENGE
             ping_link = f"http://127.0.0.1:{port}/ping"
             local_bypass_link = f"http://127.0.0.1:{port}/{clean_name}.m3u8"
 
             server_ready = False
-            for i in range(12): # Max 12 seconds wait
+            for i in range(12): 
                 try:
-                    res = requests.get(ping_link, timeout=1) # Yahan ping_link use ho raha hai!
+                    res = requests.get(ping_link, timeout=1) 
                     if res.status_code == 200:
                         server_ready = True
                         break
@@ -225,12 +219,11 @@ if __name__ == '__main__':
                 err_msg = "Proxy Boot Error."
                 try:
                     with open(log_file, "r") as lf:
-                        err_msg += f"\n`{lf.read()[-300:]}`"
+                        err_msg += f"\\n`{lf.read()[-300:]}`"
                 except:
                     pass
                 raise Exception(err_msg)
 
-            # Agar 200 mil gaya, toh finally Play karo!
             await SHUKLA.join_call(
                 chat_id, 
                 chat_id, 
@@ -253,5 +246,5 @@ if __name__ == '__main__':
                     [InlineKeyboardButton(text="🔄 Retry", callback_data=f"retrytv_{category}_{page}_{ch_idx}")],
                     [InlineKeyboardButton(text="🔙 Back", callback_data=f"tvcat_{category}_{page}")]
                 ])
-        )
-        
+            )
+            
