@@ -10,6 +10,10 @@ import urllib.parse
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 
+# PyTgCalls imports for streaming over network
+from pytgcalls.types.input_stream import VideoPiped
+from pytgcalls.types.input_stream.quality import HighQualityAudio, HighQualityVideo
+
 from SHUKLAMUSIC import app
 from SHUKLAMUSIC.core.call import SHUKLA
 from SHUKLAMUSIC.utils.database import get_playmode, get_playtype, is_nonadmin_chat
@@ -149,11 +153,17 @@ async def tv_callback(client, query: CallbackQuery):
             safe_url = urllib.parse.quote(raw_url, safe='')
             local_bypass_link = f"http://127.0.0.1:5000/stream?url={safe_url}"
 
-            # 🚀 FIXED: Using your exact architecture format from stream.py
+            # 🚀 FIXED: Wrapped the URL in VideoPiped to tell engine it's a stream, not a file
+            stream = VideoPiped(
+                local_bypass_link,
+                audio_parameters=HighQualityAudio(),
+                video_parameters=HighQualityVideo(),
+            )
+
             await SHUKLA.join_call(
                 chat_id, 
                 chat_id, 
-                local_bypass_link, 
+                stream, # Now passing the VideoPiped object
                 video=True
             )
             
