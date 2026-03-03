@@ -70,13 +70,11 @@ def load_iptv_data(force_reload=False):
     CACHED_CHANNELS = {}
     FLAT_CHANNELS = []
     
-    # Hidden/Removed channels database check
     hidden_urls = []
     if os.path.exists("hidden_channels.json"):
         with open("hidden_channels.json", "r") as f:
             hidden_urls = json.load(f)
 
-    # 1. Fetch Default GitHub Channels
     try:
         response = requests.get(IPTV_URL)
         lines = response.text.splitlines()
@@ -99,7 +97,6 @@ def load_iptv_data(force_reload=False):
                     FLAT_CHANNELS.append(ch_data)
     except: pass
 
-    # 2. Add Custom Channels 
     if os.path.exists("custom_channels.json"):
         with open("custom_channels.json", "r") as f:
             customs = json.load(f)
@@ -117,7 +114,6 @@ def load_iptv_data(force_reload=False):
 # ==========================================
 @app.on_message(filters.command(["cadd"], prefixes=["/", "!", "%", ",", ".", "@", "#"]) & filters.group & ~BANNED_USERS)
 async def add_channel_cmd(client, message: Message):
-    # Format: /cadd Link | Name | Category
     try:
         text = message.text.split(" ", 1)[1]
         parts = text.split("|")
@@ -170,7 +166,6 @@ async def playtv_cmd(client, message: Message):
     if not data:
         return await message.reply_text("❌ Failed to load IPTV channels." + WATERMARK)
     
-    # 🔥 DIRECT NUMBER PLAY LOGIC (e.g., /playtv 5)
     if len(message.command) > 1:
         try:
             ch_num = int(message.command[1])
@@ -189,18 +184,26 @@ async def playtv_cmd(client, message: Message):
                 except Exception:
                     pass 
                 
-                # 🔥 HEX MAGIC TRICK
+                # 🔥 THE MASTER FILE HACK (No minus sign)
                 safe_url = raw_url.encode('utf-8').hex()
                 local_bypass_link = f"http://127.0.0.1:5000/play/{safe_url}.m3u8"
 
-                await SHUKLA.join_call(chat_id, chat_id, local_bypass_link, video=True)
+                os.makedirs("downloads", exist_ok=True)
+                # Chat ID se minus hataya taaki Linux ko command flag na lage
+                clean_id = str(chat_id).replace("-", "G")
+                file_path = f"downloads/live_{clean_id}.m3u8"
+                
+                with open(file_path, "w") as f:
+                    f.write(f"#EXTM3U\n#EXTINF:-1, {ch_name}\n{local_bypass_link}\n")
+
+                await SHUKLA.join_call(chat_id, chat_id, file_path, video=True)
                 
                 await status_msg.edit_text(f"✅ **Hellfire TV Live!**\n\n📺 **Channel:** {ch_name} (No. {ch_num})\n🚀 Direct Stream Active!" + WATERMARK)
             except Exception as e:
-                await status_msg.edit_text(f"❌ **Stream Failed!**\nChannel dead hai peeche se.\n`{str(e)}`" + WATERMARK)
+                await status_msg.edit_text(f"❌ **Stream Failed!**\nChannel dead hai.\n`{str(e)}`" + WATERMARK)
             return
         except ValueError:
-            pass # Agar string daala hai, toh aage button menu dikhayega
+            pass 
 
     buttons = []
     for cat in list(data.keys())[:10]: 
@@ -230,7 +233,6 @@ async def tv_callback(client, query: CallbackQuery):
         buttons = []
         for idx, ch in enumerate(current_channels):
             real_idx = start_idx + idx
-            # Channel list global number nikalna
             ch_num = FLAT_CHANNELS.index(ch) + 1
             buttons.append([InlineKeyboardButton(text=f"▶️ {ch['name']}", callback_data=f"playtv_{category}_{page}_{ch_num-1}")])
             
@@ -260,22 +262,22 @@ async def tv_callback(client, query: CallbackQuery):
         await query.message.edit_text(f"⏳ **HellfireDevs:** Bypassing blocks & Loading `{ch_name}`..." + WATERMARK)
         
         try:
-            # 🔥 SWITCH/SKIP LOGIC
-            try:
-                await SHUKLA.force_stop_stream(chat_id)
-            except Exception:
-                pass 
+            try: await SHUKLA.force_stop_stream(chat_id)
+            except: pass 
 
-            # 🔥 HEX MAGIC TRICK
+            # 🔥 THE MASTER FILE HACK (No minus sign)
             safe_url = raw_url.encode('utf-8').hex()
             local_bypass_link = f"http://127.0.0.1:5000/play/{safe_url}.m3u8"
 
-            await SHUKLA.join_call(
-                chat_id, 
-                chat_id, 
-                local_bypass_link, 
-                video=True
-            )
+            os.makedirs("downloads", exist_ok=True)
+            # Chat ID se minus hataya
+            clean_id = str(chat_id).replace("-", "G")
+            file_path = f"downloads/live_{clean_id}.m3u8"
+            
+            with open(file_path, "w") as f:
+                f.write(f"#EXTM3U\n#EXTINF:-1, {ch_name}\n{local_bypass_link}\n")
+
+            await SHUKLA.join_call(chat_id, chat_id, file_path, video=True)
             
             text = f"✅ **Hellfire TV Live!**\n\n📺 **Channel:** {ch_name} (No. {ch_idx+1})\n🚀 Stream Skipped & Active!" + WATERMARK
             await query.message.edit_text(
@@ -292,5 +294,5 @@ async def tv_callback(client, query: CallbackQuery):
                     [InlineKeyboardButton(text="🔄 Retry", callback_data=f"retrytv_{category}_{page}_{ch_idx}")],
                     [InlineKeyboardButton(text="🔙 Back", callback_data=f"tvcat_{category}_{page}")]
                 ])
-)
+                    )
             
