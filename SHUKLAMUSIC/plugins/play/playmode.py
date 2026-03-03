@@ -4,10 +4,9 @@
 # ᴘʀᴏᴛᴇᴄᴛᴇᴅ ʙʏ ʜᴇʟʟғɪʀᴇ sᴇᴄᴜʀɪᴛʏ.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import os
 import requests
 import math
-import urllib.parse
+import base64
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 
@@ -146,29 +145,23 @@ async def tv_callback(client, query: CallbackQuery):
         await query.message.edit_text(f"⏳ **HellfireDevs:** Bypassing blocks & Loading `{ch_name}`..." + WATERMARK)
         
         try:
-            # 🔥 SWITCH/SKIP LOGIC: Agar pehle se kuch chal raha hai toh usko forcefully band karo
+            # 🔥 SWITCH/SKIP LOGIC: Purana stream turant band karega
             try:
                 await SHUKLA.force_stop_stream(chat_id)
             except Exception:
-                pass # Agar pehle se kuch nahi chal raha, toh error ignore karo
+                pass 
 
-            # 🔥 DYNAMIC PROXY LINK
-            safe_url = urllib.parse.quote(raw_url, safe='')
-            local_bypass_link = f"http://127.0.0.1:5000/stream.m3u8?url={safe_url}"
-
-            # 🧠 MASTERSTROKE TRICK: Bypassing the Errno 2 File Check forever!
-            # Server pe folder bana ke physical file banayenge har chat ke liye
-            os.makedirs("downloads", exist_ok=True)
-            file_path = f"downloads/live_tv_{chat_id}.m3u8"
+            # 🧠 BASE64 HACK: URL ko encrypt kiya taaki koi special char (%, ?) engine ko confuse na kare
+            safe_url = base64.urlsafe_b64encode(raw_url.encode('utf-8')).decode('utf-8')
             
-            with open(file_path, "w") as f:
-                f.write(f"#EXTM3U\n#EXTINF:-1, {ch_name}\n{local_bypass_link}\n")
+            # Ekdum neat and clean proxy link jo engine ko .m3u8 file lagega
+            local_bypass_link = f"http://127.0.0.1:5000/play/{safe_url}.m3u8"
 
-            # 🚀 Engine ko path denge (File format mein), toh wo 100% bypass ho jayega
+            # 🚀 Engine ko direct clean link feed kar diya (No local file created!)
             await SHUKLA.join_call(
                 chat_id, 
                 chat_id, 
-                file_path, 
+                local_bypass_link, 
                 video=True
             )
             
@@ -187,5 +180,5 @@ async def tv_callback(client, query: CallbackQuery):
                     [InlineKeyboardButton(text="🔄 Retry", callback_data=f"retrytv_{category}_{page}_{ch_idx}")],
                     [InlineKeyboardButton(text="🔙 Back", callback_data=f"tvcat_{category}_{page}")]
                 ])
-               )
-        
+            )
+            
