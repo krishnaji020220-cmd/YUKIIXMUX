@@ -151,13 +151,14 @@ async def tv_callback(client, query: CallbackQuery):
             except Exception:
                 pass 
 
-            # 🧠 BASE64 HACK: URL ko encrypt kiya taaki koi special char (%, ?) engine ko confuse na kare
+            # 🧠 BASE64 HACK: URL ko encrypt kiya
             safe_url = base64.urlsafe_b64encode(raw_url.encode('utf-8')).decode('utf-8')
             
-            # Ekdum neat and clean proxy link jo engine ko .m3u8 file lagega
-            local_bypass_link = f"http://127.0.0.1:5000/play/{safe_url}.m3u8"
+            # 🔥 PROBLEM 1 & 2 FIX: '=' hata diya aur query parameter (?id=) use kiya
+            safe_url = safe_url.rstrip("=")
+            local_bypass_link = f"http://127.0.0.1:5000/play.m3u8?id={safe_url}"
 
-            # 🚀 Engine ko direct clean link feed kar diya (No local file created!)
+            # 🚀 Engine ko clean link feed kar diya
             await SHUKLA.join_call(
                 chat_id, 
                 chat_id, 
