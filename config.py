@@ -1,4 +1,4 @@
-#copy
+#cop
 
 import re
 from os import getenv
