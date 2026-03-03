@@ -187,5 +187,5 @@ async def tv_callback(client, query: CallbackQuery):
                     [InlineKeyboardButton(text="🔄 Retry", callback_data=f"retrytv_{category}_{page}_{ch_idx}")],
                     [InlineKeyboardButton(text="🔙 Back", callback_data=f"tvcat_{category}_{page}")]
                 ])
-)
+               )
         
