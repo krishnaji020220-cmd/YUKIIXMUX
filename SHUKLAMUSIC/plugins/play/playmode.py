@@ -145,9 +145,9 @@ async def tv_callback(client, query: CallbackQuery):
         await query.message.edit_text(f"⏳ **HellfireDevs:** Bypassing blocks & Loading `{ch_name}`..." + WATERMARK)
         
         try:
-            # 🔥 MAGIC: Pipe bypass link with dummy .m3u8 extension!
+            # 🔥 MAGIC: Dynamic FFmpeg Proxy link with .m3u8 extension
             safe_url = urllib.parse.quote(raw_url, safe='')
-            local_bypass_link = f"http://127.0.0.1:5000/stream?url={safe_url}&ext=.m3u8"
+            local_bypass_link = f"http://127.0.0.1:5000/stream.m3u8?url={safe_url}"
 
             # 🚀 DIRECT STRING PASS KARO (stream.py isko natively utha lega)
             await SHUKLA.join_call(
@@ -157,7 +157,7 @@ async def tv_callback(client, query: CallbackQuery):
                 video=True
             )
             
-            text = f"✅ **Hellfire TV Live!**\n\n📺 **Channel:** {ch_name}\n🧈 Anti-Block System Active!" + WATERMARK
+            text = f"✅ **Hellfire TV Live!**\n\n📺 **Channel:** {ch_name}\n🛡️ Advanced Anti-Block Active!" + WATERMARK
             await query.message.edit_text(
                 text,
                 reply_markup=InlineKeyboardMarkup([
@@ -165,7 +165,7 @@ async def tv_callback(client, query: CallbackQuery):
                 ])
             )
         except Exception as e:
-            text = f"❌ **Stream Failed!**\nChannel `{ch_name}` offline hai.\n`{str(e)[:50]}`" + WATERMARK
+            text = f"❌ **Stream Failed!**\nChannel `{ch_name}` offline hai.\n`{str(e)}`" + WATERMARK
             await query.message.edit_text(
                 text,
                 reply_markup=InlineKeyboardMarkup([
