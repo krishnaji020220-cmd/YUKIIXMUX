@@ -13,7 +13,8 @@ from SHUKLAMUSIC.core.call import SHUKLA
 from SHUKLAMUSIC.misc import db
 from SHUKLAMUSIC.utils.database import add_active_video_chat, is_active_chat
 from SHUKLAMUSIC.utils.exceptions import AssistantErr
-from SHUKLAMUSIC.utils.inline import aq_markup, close_markup, stream_markup
+# 🔥 IMPORT MEIN stream_markup_timer ADD KAR DIYA HAI
+from SHUKLAMUSIC.utils.inline import aq_markup, close_markup, stream_markup, stream_markup_timer
 from SHUKLAMUSIC.utils.pastebin import SHUKLABin
 from SHUKLAMUSIC.utils.stream.queue import put_queue, put_queue_index
 from SHUKLAMUSIC.utils.thumbnails import get_thumb
@@ -149,8 +150,8 @@ async def stream(
                 )
                 img = await get_thumb(vidid)
                 
-                # 🔥 HACK IN ACTION: Send photo without Pyrogram buttons, then inject raw API buttons
-                button = stream_markup(_, chat_id)
+                # 🔥 HACK IN ACTION: Timer Bar injected
+                button = stream_markup_timer(_, chat_id, "00:00", duration_min)
                 run = await app.send_photo(
                     original_chat_id,
                     photo=img,
@@ -217,8 +218,8 @@ async def stream(
             
             img = await get_thumb(vidid)
             
-            # 🔥 HACK IN ACTION
-            button = stream_markup(_, chat_id)
+            # 🔥 HACK IN ACTION: Timer Bar injected
+            button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             run = await app.send_photo(
                 original_chat_id,
                 photo=img,
@@ -247,8 +248,8 @@ async def stream(
             await SHUKLA.join_call(chat_id, original_chat_id, file_path, video=None)
             await put_queue(chat_id, original_chat_id, file_path, title, duration_min, user_name, streamtype, user_id, "audio", forceplay=forceplay)
             
-            # 🔥 HACK IN ACTION
-            button = stream_markup(_, chat_id)
+            # 🔥 HACK IN ACTION: Timer Bar injected
+            button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.SOUNCLOUD_IMG_URL,
@@ -281,8 +282,8 @@ async def stream(
             if video:
                 await add_active_video_chat(chat_id)
                 
-            # 🔥 HACK IN ACTION
-            button = stream_markup(_, chat_id)
+            # 🔥 HACK IN ACTION: Timer Bar injected
+            button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.TELEGRAM_VIDEO_URL if video else config.TELEGRAM_AUDIO_URL,
@@ -319,7 +320,7 @@ async def stream(
             
             img = await get_thumb(vidid)
             
-            # 🔥 HACK IN ACTION
+            # 🔥 YAHAN NO TIMER (Taaki Live Track pe Crash Na Ho)
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
@@ -350,7 +351,7 @@ async def stream(
             await SHUKLA.join_call(chat_id, original_chat_id, link, video=True if video else None)
             await put_queue_index(chat_id, original_chat_id, "index_url", title, duration_min, user_name, link, "video" if video else "audio", forceplay=forceplay)
             
-            # 🔥 HACK IN ACTION
+            # 🔥 YAHAN BHI NO TIMER (Index duration "00:00" hoti hai)
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
@@ -362,4 +363,4 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
-            
+        
