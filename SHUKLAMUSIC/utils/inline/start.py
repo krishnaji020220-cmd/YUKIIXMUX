@@ -28,7 +28,7 @@ def start_panel(_):
             api_btn(
                 text=_["S_B_1"], 
                 url=f"https://t.me/{app.username}?startgroup=true", 
-                style="primary", 
+                style="success", 
                 custom_emoji_id="6001132493011425597"
             ),
             # Support Chat (Red)
@@ -52,7 +52,7 @@ def private_panel(_):
             api_btn(
                 text=_["S_B_3"],
                 url=f"https://t.me/{app.username}?startgroup=true",
-                style="primary",
+                style="success",
                 custom_emoji_id="6080202089311507876"
             )
         ],
@@ -61,7 +61,7 @@ def private_panel(_):
             api_btn(
                 text=_["S_B_4"], 
                 callback_data="settings_back_helper", 
-                style="success", 
+                style="primary", 
                 custom_emoji_id="6080176744709495278"
             ),
             # Mimi Tunes (Blue)
