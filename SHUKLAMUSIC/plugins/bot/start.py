@@ -95,7 +95,7 @@ async def start_pm(client, message: Message, _):
     # 🔥 STEP 2: STICKER BHEJNA + 5 SEC WAIT + DELETE
     try:
         stk = await message.reply_sticker("CAACAgUAAxkBAAFD0UBpqDbTjoP_CXF7Ce6oZykP4r64jQACxAcAArligFU4dyG-LQJBjDoE")
-        await asyncio.sleep(5) # 5 Second Wait Karega
+        await asyncio.sleep(2) # 5 Second Wait Karega
         await stk.delete()     # 5 Second baad delete kar dega
     except: pass
 
