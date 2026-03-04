@@ -1,13 +1,17 @@
 import config
 from SHUKLAMUSIC import app
 
-# 🔥 HELLFIRE DEVS HACK: Raw API Button Generator
+# 🔥 HELLFIRE DEVS HACK: Raw API Button Generator (WITH AUTO-URL FIXER)
 def api_btn(text, callback_data=None, url=None, style=None, custom_emoji_id=None):
     btn = {"text": text}
     if callback_data:
         btn["callback_data"] = callback_data
     if url:
-        btn["url"] = url
+        # Raw API strictly requires http/https/tg links. Yeh usko auto-fix karega:
+        url_str = str(url)
+        if not url_str.startswith("http") and not url_str.startswith("tg://"):
+            url_str = f"https://t.me/{url_str.replace('@', '')}"
+        btn["url"] = url_str
     if style:
         btn["style"] = style  # 'primary' (Blue), 'danger' (Red), 'secondary' (Grey)
     if custom_emoji_id:
@@ -37,6 +41,9 @@ def start_panel(_):
 
 
 def private_panel(_):
+    # Owner ID list error bypass:
+    safe_owner_id = config.OWNER_ID[0] if isinstance(config.OWNER_ID, list) else config.OWNER_ID
+    
     buttons = [
         [
             # Add to Group (Blue + 😎 Emoji)
@@ -80,10 +87,10 @@ def private_panel(_):
             ),
         ],
         [
-            # Owner (Red + 😈 Emoji) - Using tg://user link for raw API
+            # Owner (Red + 😈 Emoji)
             api_btn(
                 text=_["S_B_5"], 
-                url=f"tg://user?id={config.OWNER_ID}", 
+                url=f"tg://user?id={safe_owner_id}", 
                 style="danger", 
                 custom_emoji_id="5413546177683539369"
             ),
