@@ -6,7 +6,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiohttp import ClientSession
 import re
 import os
-import socket
+import socket #hrheh
 import aiofiles
 import aiohttp
 import asyncio
