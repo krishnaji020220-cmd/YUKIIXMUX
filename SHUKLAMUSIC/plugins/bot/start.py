@@ -64,7 +64,7 @@ async def send_magic_start(chat_id, photo_url, caption, markup):
             "photo": photo_url,
             "caption": caption,
             "parse_mode": "HTML",
-            "message_effect_id": "5104861875154336188", # ❤️ Flying Hearts Effect ID
+            "message_effect_id": "5159385139981059251", # ❤️ Flying Hearts Effect ID
             "reply_markup": {"inline_keyboard": markup}
         }
         
@@ -95,8 +95,8 @@ async def start_pm(client, message: Message, _):
     # 🔥 STEP 2: STICKER BHEJNA + 5 SEC WAIT + DELETE
     try:
         stk = await message.reply_sticker("CAACAgUAAxkBAAFD0UBpqDbTjoP_CXF7Ce6oZykP4r64jQACxAcAArligFU4dyG-LQJBjDoE")
-        await asyncio.sleep(2) # 5 Second Wait Karega
-        await stk.delete()     # 5 Second baad delete kar dega
+        await asyncio.sleep(2) 
+        await stk.delete()     
     except: pass
 
     # 🔥 STEP 3: LOADING ANIMATION
@@ -125,14 +125,24 @@ async def start_pm(client, message: Message, _):
     # 🔥 STEP 4: FINAL START MESSAGE
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
+        
+        # --- HELP COMMAND ---
         if name[0:4] == "help":
             keyboard = help_pannel(_)
-            run = await message.reply_photo(
-                random.choice(YUMI_PICS),
-                caption=_["help_1"].format(config.SUPPORT_CHAT),
-            )
+            try:
+                run = await message.reply_photo(
+                    random.choice(YUMI_PICS),
+                    caption=_["help_1"].format(config.SUPPORT_CHAT),
+                    message_effect_id=5159385139981059251, # ❤️ Hearts added here
+                )
+            except:
+                run = await message.reply_photo(
+                    random.choice(YUMI_PICS),
+                    caption=_["help_1"].format(config.SUPPORT_CHAT),
+                )
             return await inject_premium_markup(message.chat.id, run.id, keyboard)
             
+        # --- SUDO LIST ---
         if name[0:3] == "sud":
             await sudoers_list(client=client, message=message, _=_)
             if await is_on_off(2):
@@ -142,6 +152,7 @@ async def start_pm(client, message: Message, _):
                 )
             return
             
+        # --- INFO COMMAND (HACKER SHIELD APPLIED) ---
         if name[0:3] == "inf":
             m = await message.reply_text("🔎")
             query = (str(name)).replace("info_", "", 1)
@@ -151,11 +162,11 @@ async def start_pm(client, message: Message, _):
                 title = result["title"]
                 duration = result["duration"]
                 views = result["viewCount"]["short"]
-                thumbnail = result["thumbnails"][0]["url"].split("?")[0]
                 channellink = result["channel"]["link"]
                 channel = result["channel"]["name"]
                 link = result["link"]
                 published = result["publishedTime"]
+                
             searched_text = _["start_6"].format(
                 title, duration, views, published, channellink, channel, app.mention
             )
@@ -167,12 +178,17 @@ async def start_pm(client, message: Message, _):
                 ]
             ]
             await m.delete()
-            run = await app.send_photo(
+            
+            # 🚨 HACKER SHIELD: Thumbnail bypass (ab hamesha teri catbox/safe pic hi aayegi)
+            safe_thumbnail = random.choice(YUMI_PICS)
+            
+            # 🔥 Magic Start Call for Info (With Hearts Animation)
+            await send_magic_start(
                 chat_id=message.chat.id,
-                photo=thumbnail,
+                photo_url=safe_thumbnail,
                 caption=searched_text,
+                markup=key
             )
-            await inject_premium_markup(message.chat.id, run.id, key)
             
             if await is_on_off(2):
                 return await app.send_message(
@@ -187,7 +203,7 @@ async def start_pm(client, message: Message, _):
         
         caption_text = _["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM,served_users,served_chats)
         
-        # 🔥 STEP 4: YAHAN MAGIC START CALL HOGA BINA CRASH KIYE
+        # 🔥 Normal Start Call (With Hearts Animation)
         await send_magic_start(
             chat_id=message.chat.id,
             photo_url=random.choice(YUMI_PICS),
@@ -212,10 +228,18 @@ async def start_gp(client, message: Message, _):
     out = start_panel(_)
     uptime = int(time.time() - _boot_)
     
-    run = await message.reply_photo(
-        random.choice(YUMI_PICS),
-        caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
-    )
+    # 🔥 GROUP MEIN HEARTS ANIMATION
+    try:
+        run = await message.reply_photo(
+            random.choice(YUMI_PICS),
+            caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
+            message_effect_id=5159385139981059251, # ❤️ Hearts effect
+        )
+    except:
+        run = await message.reply_photo(
+            random.choice(YUMI_PICS),
+            caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
+        )
     await inject_premium_markup(message.chat.id, run.id, out)
 
 @app.on_message(filters.command("promo") & filters.private)
@@ -279,4 +303,4 @@ async def welcome(client, message: Message):
 
         except Exception as ex:
             pass
-            
+                    
