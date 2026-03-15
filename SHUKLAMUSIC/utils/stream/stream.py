@@ -136,11 +136,12 @@ async def stream(
                 img = await get_thumb(vidid)
                 button = stream_markup_timer(_, chat_id, "00:00", duration_min)
                 
-                # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons
+                # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
                 run = await app.send_photo(
                     original_chat_id,
                     photo=img,
                     caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name),
+                    has_spoiler=True
                 )
                 await inject_premium_markup(original_chat_id, run.id, button)
                 
@@ -154,7 +155,8 @@ async def stream(
             car = os.linesep.join(msg.split(os.linesep)[:17]) if lines >= 17 else msg
             carbon = await Carbon.generate(car, randint(100, 10000000))
             upl = close_markup(_)
-            return await app.send_photo(original_chat_id, photo=carbon, caption=_["play_21"].format(position, link), reply_markup=upl)
+            # Added Spoiler to Playlist Carbon as well
+            return await app.send_photo(original_chat_id, photo=carbon, caption=_["play_21"].format(position, link), reply_markup=upl, has_spoiler=True)
 
     # --- 2. YOUTUBE SINGLE LOGIC ---
     elif streamtype == "youtube":
@@ -200,11 +202,12 @@ async def stream(
             img = await get_thumb(vidid)
             button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons
+            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
             run = await app.send_photo(
                 original_chat_id,
                 photo=img,
                 caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name),
+                has_spoiler=True
             )
             await inject_premium_markup(original_chat_id, run.id, button)
             
@@ -233,11 +236,12 @@ async def stream(
             
             button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons
+            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.SOUNCLOUD_IMG_URL,
                 caption=_["stream_1"].format(config.SUPPORT_CHAT, title[:23], duration_min, user_name),
+                has_spoiler=True
             )
             await inject_premium_markup(original_chat_id, run.id, button)
             
@@ -270,11 +274,12 @@ async def stream(
                 
             button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons
+            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.TELEGRAM_VIDEO_URL if video else config.TELEGRAM_AUDIO_URL,
                 caption=_["stream_1"].format(link, title[:23], duration_min, user_name),
+                has_spoiler=True
             )
             await inject_premium_markup(original_chat_id, run.id, button)
             
@@ -310,11 +315,12 @@ async def stream(
             img = await get_thumb(vidid)
             button = stream_markup(_, chat_id)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons
+            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
             run = await app.send_photo(
                 original_chat_id,
                 photo=img,
                 caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name),
+                has_spoiler=True
             )
             await inject_premium_markup(original_chat_id, run.id, button)
             
@@ -341,15 +347,16 @@ async def stream(
             
             button = stream_markup(_, chat_id)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons
+            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.STREAM_IMG_URL,
                 caption=_["stream_2"].format(user_name),
+                has_spoiler=True
             )
             await inject_premium_markup(original_chat_id, run.id, button)
             
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
-        
+            
