@@ -1,4 +1,5 @@
 import asyncio
+import aiohttp
 from telegram import CallbackQuery
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -369,6 +370,21 @@ async def del_back_playlist(client, CallbackQuery, _):
             await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
 
 
+# 🔥 PREMIUM EMOJI HACK FUNCTION 🔥
+async def inject_premium_markup(chat_id, message_id, markup):
+    try:
+        url = f"https://api.telegram.org/bot{app.bot_token}/editMessageReplyMarkup"
+        payload = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "reply_markup": {"inline_keyboard": markup}
+        }
+        async with aiohttp.ClientSession() as session:
+            await session.post(url, json=payload)
+    except Exception as e:
+        pass
+
+
 async def markup_timer():
     while not await asyncio.sleep(7):
         active_chats = await get_active_chats()
@@ -404,9 +420,8 @@ async def markup_timer():
                         seconds_to_min(playing[0]["played"]),
                         playing[0]["dur"],
                     )
-                    await mystic.edit_reply_markup(
-                        reply_markup=InlineKeyboardMarkup(buttons)
-                    )
+                    # 🔥 NAYA HACK LAGA DIYA
+                    await inject_premium_markup(mystic.chat.id, mystic.id, buttons)
                 except:
                     continue
             except:
@@ -414,3 +429,4 @@ async def markup_timer():
 
 
 asyncio.create_task(markup_timer())
+        
