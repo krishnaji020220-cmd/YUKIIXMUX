@@ -538,7 +538,7 @@ class Call(PyTgCalls):
                 run = await app.send_photo(
                     chat_id=original_chat_id,
                     photo=config.SOUNCLOUD_IMG_URL,
-                        caption=_["stream_1"].format(
+                    caption=_["stream_1"].format(
                             config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
                         ),
                         reply_markup=InlineKeyboardMarkup(button),
