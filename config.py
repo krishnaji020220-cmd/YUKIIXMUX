@@ -24,7 +24,7 @@ BOT_NAME = getenv("BOT_NAME" , "MIMI X MUSIC")
 # ---------------------------------------------------------
 ASSUSERNAME = getenv("ASSUSERNAME" , "Kaito_3_2")
 # ---------------------------------------------------------
-GROQ_API_KEY=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
+GROQ_API_KEY="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"
 
 #---------------------------------------------------------------
 #---------------------------------------------------------------
