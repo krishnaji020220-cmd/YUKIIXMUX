@@ -13,15 +13,16 @@ from youtubesearchpython.__future__ import VideosSearch
 from SHUKLAMUSIC.utils.database import is_on_off
 from SHUKLAMUSIC.utils.formatters import time_to_seconds
 
-# ─────────────────────────────
-# 🔥 SHRUTI API CONFIG
-# ─────────────────────────────
+# SHRUTI API CONFIG
 FALLBACK_API_URL = "https://shrutibots.site"
 YOUR_API_URL = None
 
 cookies_file = "SHUKLAMUSIC/assets/cookies.txt"
 
-# 🔄 API URL Loader (Dynamic)
+# LOCAL MUSIC FOLDER PATH (Apne 45GB wale folder ka path yahan daal)
+HELLFIRE_VAULT_DIR = "/home/ubuntu/Hellfire_Vault"
+
+# API URL Loader (Dynamic)
 async def get_api_url():
     global YOUR_API_URL
     if YOUR_API_URL: return YOUR_API_URL
@@ -36,7 +37,7 @@ async def get_api_url():
         YOUR_API_URL = FALLBACK_API_URL
     return YOUR_API_URL
 
-# 📥 Direct Downloader Function
+# Direct Downloader Function
 async def download_via_shruti(link: str, is_video: bool = False):
     api_url = await get_api_url()
     video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
@@ -74,7 +75,7 @@ async def download_via_shruti(link: str, is_video: bool = False):
                 
                 return file_path if os.path.exists(file_path) else None
     except Exception as e:
-        print(f"❌ API Download Error: {e}")
+        print(f"API Download Error: {e}")
         return None
 
 async def shell_cmd(cmd):
@@ -116,7 +117,7 @@ class YouTubeAPI:
                 for entity in message.entities:
                     if entity.type == MessageEntityType.URL:
                         text = message.text or message.caption
-                        offset, length = entity.offset, entity.length
+                        offset, length = entity.offset, length
                         break
             elif message.caption_entities:
                 for entity in message.caption_entities:
@@ -214,9 +215,7 @@ class YouTubeAPI:
         thumbnail = result[query_type]["thumbnails"][0]["url"].split("?")[0]
         return title, duration_min, thumbnail, vidid
 
-    # ─────────────────────────────────────────────
-    # 🔥 MODIFIED DOWNLOAD (USES SHRUTI API DIRECTLY)
-    # ─────────────────────────────────────────────
+    # MODIFIED DOWNLOAD FOR LOCAL FILE CHECK
     async def download(
         self,
         link: str,
@@ -228,20 +227,34 @@ class YouTubeAPI:
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
     ) -> str:
-        if videoid: link = self.base + link
+        
+        # Determine video id for local search
+        current_vidid = videoid
+        if not current_vidid:
+            current_vidid = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
 
-        # 1️⃣ API Download Attempt
         is_video_req = True if video or songvideo else False
         
+        # STEP 1: Check Hellfire Vault (Local 45GB Storage)
+        if os.path.exists(HELLFIRE_VAULT_DIR):
+            extensions = ["mp4", "mkv"] if is_video_req else ["mp3", "m4a", "webm"]
+            for ext in extensions:
+                local_file_path = os.path.join(HELLFIRE_VAULT_DIR, f"{current_vidid}.{ext}")
+                if os.path.exists(local_file_path):
+                    print(f"Playing from Hellfire Vault: {local_file_path}")
+                    return local_file_path, True
+
+        if videoid: link = self.base + link
+
+        # STEP 2: API Download Attempt
         try:
             downloaded_file = await download_via_shruti(link, is_video=is_video_req)
             if downloaded_file:
-                return downloaded_file, True  # Success
+                return downloaded_file, True
         except Exception as e:
             print(f"API Failed, trying Fallback: {e}")
 
-        # 2️⃣ Fallback (YT-DLP) - Agar API fail ho jaye tabhi chalega
-        # Render par ye fail hi hoga, but safety ke liye rakha hai.
+        # STEP 3: Fallback (YT-DLP)
         loop = asyncio.get_running_loop()
 
         def audio_dl():
@@ -279,4 +292,3 @@ class YouTubeAPI:
             downloaded_file = await loop.run_in_executor(None, audio_dl)
             
         return downloaded_file, direct
-                
