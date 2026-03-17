@@ -84,7 +84,6 @@ async def analyze_media_fast(image_path):
         with open(jpg_path, "rb") as f:
             img_b64 = base64.b64encode(f.read()).decode('utf-8')
             
-        # STRICT PROMPT in English
         payload = {
             "model": "moondream",
             "prompt": "Analyze this image. Is it safe or 18+/NSFW? Tell me what it is in EXACTLY 2 to 5 words in English. Example: 'Safe, a cute cat' or '18+ NSFW content detected'. Do not write long sentences.",
@@ -97,9 +96,11 @@ async def analyze_media_fast(image_path):
                 data = await resp.json()
                 os.remove(jpg_path)
                 return data.get("response", "error analyzing media.")
+                
     except Exception as e:
         print(f"Vision API Error: {e}")
-        return "sᴄᴀɴ ғᴀɪʟᴇᴅ ᴅᴜᴇ ᴛᴏ ᴇʀʀᴏʀ."
+        # 🔥 YAHAN REAL ERROR MESSAGE RETURN HOGA
+        return f"ᴇʀʀᴏʀ: {str(e)}"
 
 # ─────────────────────────────
 # 🚨 MAIN SCANNER (PHOTOS & STICKERS)
@@ -108,8 +109,11 @@ async def analyze_media_fast(image_path):
 async def nsfw_scanner(client, message: Message):
     chat_id = message.chat.id
     
-    # Check if ON
     if not chat_nsfw_state.get(chat_id, True):
+        return
+
+    # 🔥 NAYA FIX: Ignore Animated and Video Stickers
+    if message.sticker and (message.sticker.is_animated or message.sticker.is_video):
         return
 
     await client.send_chat_action(chat_id, ChatAction.TYPING)
@@ -118,29 +122,24 @@ async def nsfw_scanner(client, message: Message):
     try:
         dl_path = await message.download()
         
-        # Analyze and get raw result
         raw_result = await analyze_media_fast(dl_path)
         
         if os.path.exists(dl_path):
             os.remove(dl_path)
             
-        # Check if AI detected NSFW/18+
         raw_lower = raw_result.lower()
         if "18+" in raw_lower or "nsfw" in raw_lower:
-            # Delete the message first
             try:
                 await message.delete()
             except Exception as e:
                 print(f"Delete permission error: {e}")
             
-            # Send Warning with Tag
             emo = random.choice(PREMIUM_EMOJIS)
             user_mention = message.from_user.mention if message.from_user else "ᴜsᴇʀ"
             warn_msg = f"⚠️ ᴡᴀʀɴɪɴɢ {user_mention}!\nʏᴏᴜʀ ᴍᴇssᴀɢᴇ ᴡᴀs ᴅᴇʟᴇᴛᴇᴅ ʙᴇᴄᴀᴜsᴇ ɪᴛ ᴄᴏɴᴛᴀɪɴᴇᴅ 18+/ɴsғᴡ ᴄᴏɴᴛᴇɴᴛ. {emo}"
             await client.send_message(chat_id, warn_msg, parse_mode=ParseMode.HTML)
             
         else:
-            # Safe Content -> Normal Scan Reply
             styled_result = to_small_caps(raw_result)
             emo = random.choice(PREMIUM_EMOJIS)
             final_msg = f"👁️ **sᴄᴀɴ:** {styled_result} {emo}"
@@ -150,4 +149,6 @@ async def nsfw_scanner(client, message: Message):
         print(f"Scanner crash: {e}")
         if dl_path and os.path.exists(dl_path):
             os.remove(dl_path)
-          
+        # 🔥 AGAR DOWNLOAD YA MAIN FUNCTION CRASH HUA TOH YAHAN BHI REAL ERROR DIKHEGA
+        await message.reply(f"❌ **sᴄᴀɴɴᴇʀ ᴄʀᴀsʜ:** {str(e)}", parse_mode=ParseMode.HTML)
+        
