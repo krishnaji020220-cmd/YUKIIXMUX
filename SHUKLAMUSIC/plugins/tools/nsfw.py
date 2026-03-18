@@ -1,52 +1,43 @@
 import os
-import json
-import aiohttp
-import base64
 import random
 import asyncio
-import re
-from PIL import Image
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
+
+# 🔥 NudeNet Offline AI Library
+from nudenet import NudeDetector
 
 from SHUKLAMUSIC import app
 from config import BANNED_USERS
 
 # ─────────────────────────────
-# 🔥 NSFW STATE, EMOJIS & DATABASE
+# 🔥 INITIALIZE OFFLINE AI ENGINE
+# ─────────────────────────────
+print("Loading NudeNet AI Model into RAM... Please wait.")
+detector = NudeDetector() # Ek hi baar load hoga RAM mein
+print("NudeNet AI Model Loaded Successfully! 🚀")
+
+# ─────────────────────────────
+# 🔥 STATE, EMOJIS & DATABASE CACHE
 # ─────────────────────────────
 chat_nsfw_state = {}
-BANNED_STICKERS = set() # Single stickers
-BANNED_PACKS = set()    # Pura pack block karne ke liye
-SAFE_STICKERS = set()   # 🔥 Jo check ho gaye aur safe hain (Memory Cache)
-
-# 🔥 TERA MULTI-TOKEN SYSTEM
-GEMINI_KEYS = [] 
+BANNED_STICKERS = set() # Single blocked stickers
+BANNED_PACKS = set()    # Full blocked packs
+SAFE_STICKERS = set()   # Safe stickers cache
 
 PREMIUM_EMOJIS = [
     '🎀', '✨', '❌', '⚠️', '🛡️', '🤖', '💀', '👀'
 ]
 
 # ─────────────────────────────
-# 🔑 TOKEN MANAGEMENT COMMAND
+# 🧹 CLEAR SAFE CACHE COMMAND
 # ─────────────────────────────
-@app.on_message(filters.command("settoken") & ~BANNED_USERS)
-async def set_gemini_tokens(client, message: Message):
-    # Note: Ise sirf owner use kare toh behtar hai, abhi ke liye open hai
-    if len(message.command) < 2:
-        return await message.reply("<blockquote>⚠️ **ᴜsᴀɢᴇ:** `/settoken API_KEY_1 API_KEY_2`\n(You can add multiple tokens separated by space)</blockquote>", parse_mode=ParseMode.HTML)
-    
-    global GEMINI_KEYS
-    new_keys = message.command[1:]
-    added_count = 0
-    
-    for key in new_keys:
-        if key not in GEMINI_KEYS:
-            GEMINI_KEYS.append(key)
-            added_count += 1
-            
-    await message.reply(f"<blockquote>✅ **{added_count} ɴᴇᴡ ᴛᴏᴋᴇɴs ᴀᴅᴅᴇᴅ!**\n📊 **ᴛᴏᴛᴀʟ ᴀᴄᴛɪᴠᴇ ᴛᴏᴋᴇɴs:** {len(GEMINI_KEYS)} {random.choice(PREMIUM_EMOJIS)}</blockquote>", parse_mode=ParseMode.HTML)
+@app.on_message(filters.command(["clearstic"]) & ~BANNED_USERS)
+async def clear_safe_cache(client, message: Message):
+    SAFE_STICKERS.clear()
+    emo = random.choice(PREMIUM_EMOJIS)
+    await message.reply(f"<blockquote>✅ **Sᴀғᴇ Sᴛɪᴄᴋᴇʀs Cᴀᴄʜᴇ ᴄʟᴇᴀʀᴇᴅ!**\nNᴇxᴛ ᴛɪᴍᴇ ᴀʟʟ sᴛɪᴄᴋᴇʀs ᴡɪʟʟ ʙᴇ ʀᴇ-sᴄᴀɴɴᴇᴅ. 🧹{emo}</blockquote>", parse_mode=ParseMode.HTML)
 
 # ─────────────────────────────
 # 🛠️ MANUAL BAN COMMAND
@@ -108,75 +99,32 @@ async def toggle_nsfw(client, message: Message):
     except: pass
 
 # ─────────────────────────────
-# 👁️ GEMINI 2.5 FLASH ENGINE (Load Balancer)
+# 👁️ OFFLINE NUDENET ENGINE (Non-Blocking)
 # ─────────────────────────────
-async def analyze_media_gemini(image_path):
-    if not GEMINI_KEYS:
-        print("Gemini API Keys missing! Add via /settoken")
-        return -1
-        
+async def analyze_media_offline(image_path):
     try:
-        img = Image.open(image_path).convert("RGB")
-        jpg_path = image_path + ".jpg"
-        img.save(jpg_path, "JPEG", quality=80)
+        # 1. Run detection in a separate thread so music doesn't lag
+        results = await asyncio.to_thread(detector.detect, image_path)
         
-        with open(jpg_path, "rb") as f:
-            img_b64 = base64.b64encode(f.read()).decode('utf-8')
-            
-        prompt = "Analyze this image for NSFW, nudity, or adult suggestive content. Reply ONLY with a valid JSON format: {\"nsfw_percentage\": X} where X is a number from 0 to 100 representing the probability of it being NSFW. Do not output any other text."
+        # 2. Define highly explicit NSFW classes
+        explicit_classes = [
+            "EXPOSED_ANUS", "EXPOSED_BUTTOCKS", "EXPOSED_BREAST_F", 
+            "EXPOSED_GENITALIA_M", "EXPOSED_GENITALIA_F"
+        ]
         
-        payload = {
-            "contents": [{
-                "parts": [
-                    {"text": prompt},
-                    {"inline_data": {"mime_type": "image/jpeg", "data": img_b64}}
-                ]
-            }],
-            "generationConfig": {
-                "temperature": 0.1,
-                "maxOutputTokens": 20
-            }
-        }
-        
-        headers = {"Content-Type": "application/json"}
-        
-        # 🔥 Random key pick karega load balancing ke liye
-        keys_to_try = list(GEMINI_KEYS)
-        random.shuffle(keys_to_try)
-        
-        async with aiohttp.ClientSession() as session:
-            for api_key in keys_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-                
-                async with session.post(url, headers=headers, json=payload, timeout=20) as resp:
-                    data = await resp.json()
+        # 3. Find the highest probability of an explicit part
+        max_score = 0.0
+        for item in results:
+            if item.get("class") in explicit_classes:
+                score = item.get("score", 0.0)
+                if score > max_score:
+                    max_score = score
                     
-                    # Agar limit cross ho gayi (429), toh ignore karke loop mein next key pe jayega
-                    if resp.status == 429:
-                        print("Rate limit hit! Switching to next Gemini key...")
-                        continue
-                        
-                    if resp.status == 200:
-                        os.remove(jpg_path)
-                        candidate = data.get("candidates", [{}])[0]
-                        
-                        if candidate.get("finishReason") == "SAFETY":
-                            return 100 
-                            
-                        text = candidate.get("content", {}).get("parts", [{}])[0].get("text", "")
-                        match = re.search(r'\{.*\}', text, re.DOTALL)
-                        if match:
-                            res_dict = json.loads(match.group())
-                            return int(res_dict.get("nsfw_percentage", 0))
-                        return 0
-                    
-            # Agar saari keys try ho gayi aur fail ho gaya
-            if os.path.exists(jpg_path):
-                os.remove(jpg_path)
-            return -1
-                    
+        # 4. Convert to 0-100 percentage
+        return int(max_score * 100)
+        
     except Exception as e:
-        print(f"Gemini Vision Crash: {e}")
+        print(f"Offline AI Crash: {e}")
         return -1
 
 # ─────────────────────────────
@@ -184,13 +132,10 @@ async def analyze_media_gemini(image_path):
 # ─────────────────────────────
 @app.on_message(filters.command("teststic") & filters.reply)
 async def test_sticker(client, message: Message):
-    if not GEMINI_KEYS:
-        return await message.reply("<blockquote>❌ ᴘʟᴇᴀsᴇ ᴀᴅᴅ ᴀᴘɪ ᴋᴇʏs ᴜsɪɴɢ `/settoken` ғɪʀsᴛ!</blockquote>", parse_mode=ParseMode.HTML)
-
     if not message.reply_to_message.sticker and not message.reply_to_message.photo:
         return await message.reply("<blockquote>⚠️ ᴘʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ sᴛɪᴄᴋᴇʀ ᴏʀ ᴘʜᴏᴛᴏ ᴛᴏ ᴛᴇsᴛ!</blockquote>", parse_mode=ParseMode.HTML)
     
-    wait_msg = await message.reply("<blockquote>⏳ sᴄᴀɴɴɪɴɢ ɪᴍᴀɢᴇ ᴠɪᴀ ɢᴇᴍɪɴɪ 2.5 ғʟᴀsʜ...</blockquote>", parse_mode=ParseMode.HTML)
+    wait_msg = await message.reply("<blockquote>⏳ sᴄᴀɴɴɪɴɢ ɪᴍᴀɢᴇ ᴠɪᴀ ᴏғғʟɪɴᴇ ᴀɪ...</blockquote>", parse_mode=ParseMode.HTML)
     
     dl_path = None
     target_msg = message.reply_to_message
@@ -206,13 +151,13 @@ async def test_sticker(client, message: Message):
         if not dl_path:
             return await wait_msg.edit("<blockquote>❌ FAILED TO DOWNLOAD MEDIA.</blockquote>", parse_mode=ParseMode.HTML)
 
-        score = await analyze_media_gemini(dl_path)
+        score = await analyze_media_offline(dl_path)
         
         if os.path.exists(dl_path):
             os.remove(dl_path)
             
         if score == -1:
-            return await wait_msg.edit("<blockquote>❌ API ERROR OR LIMIT REACHED ON ALL KEYS.</blockquote>", parse_mode=ParseMode.HTML)
+            return await wait_msg.edit("<blockquote>❌ OFFLINE AI ERROR.</blockquote>", parse_mode=ParseMode.HTML)
             
         action = "🟢 SAFE (Added to Safe DB)"
         if score >= 80:
@@ -227,7 +172,7 @@ async def test_sticker(client, message: Message):
             if target_msg.sticker:
                 SAFE_STICKERS.add(target_msg.sticker.file_unique_id)
             
-        result_text = f"<blockquote>👁️ **ᴠɪsɪᴏɴ ᴛᴇsᴛ ʀᴇsᴜʟᴛs:**\n\n📊 **sᴄᴏʀᴇ:** {score}%\n🎯 **ᴀᴄᴛɪᴏɴ:** {action}</blockquote>"
+        result_text = f"<blockquote>👁️ **ᴠɪsɪᴏɴ ᴛᴇsᴛ ʀᴇsᴜʟᴛs:**\n\n📊 **NSFW sᴄᴏʀᴇ:** {score}%\n🎯 **ᴀᴄᴛɪᴏɴ:** {action}</blockquote>"
         await wait_msg.edit(result_text, parse_mode=ParseMode.HTML)
         
     except Exception as e:
@@ -256,7 +201,7 @@ async def nsfw_scanner(client, message: Message):
         if sticker_id in SAFE_STICKERS:
             return
 
-    # 2. DOWNLOAD & SCAN (Agar pehli baar sticker dekha hai)
+    # 2. DOWNLOAD & SCAN
     dl_path = None
     try:
         if message.sticker and (message.sticker.is_animated or message.sticker.is_video):
@@ -268,7 +213,7 @@ async def nsfw_scanner(client, message: Message):
             dl_path = await message.download()
         
         if dl_path:
-            score = await analyze_media_gemini(dl_path)
+            score = await analyze_media_offline(dl_path)
             
             if os.path.exists(dl_path):
                 os.remove(dl_path)
@@ -297,4 +242,4 @@ async def nsfw_scanner(client, message: Message):
         print(f"Scanner crash: {e}")
         if dl_path and os.path.exists(dl_path):
             os.remove(dl_path)
-            
+                                   
