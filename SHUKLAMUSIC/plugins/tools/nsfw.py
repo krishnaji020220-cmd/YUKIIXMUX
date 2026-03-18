@@ -11,7 +11,7 @@ from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 
 from SHUKLAMUSIC import app
-from config import BANNED_USERS, NSFWAPI
+from config import BANNED_USERS
 
 # ─────────────────────────────
 # 🔥 NSFW STATE, EMOJIS & DATABASE
@@ -19,10 +19,34 @@ from config import BANNED_USERS, NSFWAPI
 chat_nsfw_state = {}
 BANNED_STICKERS = set() # Single stickers
 BANNED_PACKS = set()    # Pura pack block karne ke liye
+SAFE_STICKERS = set()   # 🔥 Jo check ho gaye aur safe hain (Memory Cache)
+
+# 🔥 TERA MULTI-TOKEN SYSTEM
+GEMINI_KEYS = [] 
 
 PREMIUM_EMOJIS = [
     '🎀', '✨', '❌', '⚠️', '🛡️', '🤖', '💀', '👀'
 ]
+
+# ─────────────────────────────
+# 🔑 TOKEN MANAGEMENT COMMAND
+# ─────────────────────────────
+@app.on_message(filters.command("settoken") & ~BANNED_USERS)
+async def set_gemini_tokens(client, message: Message):
+    # Note: Ise sirf owner use kare toh behtar hai, abhi ke liye open hai
+    if len(message.command) < 2:
+        return await message.reply("<blockquote>⚠️ **ᴜsᴀɢᴇ:** `/settoken API_KEY_1 API_KEY_2`\n(You can add multiple tokens separated by space)</blockquote>", parse_mode=ParseMode.HTML)
+    
+    global GEMINI_KEYS
+    new_keys = message.command[1:]
+    added_count = 0
+    
+    for key in new_keys:
+        if key not in GEMINI_KEYS:
+            GEMINI_KEYS.append(key)
+            added_count += 1
+            
+    await message.reply(f"<blockquote>✅ **{added_count} ɴᴇᴡ ᴛᴏᴋᴇɴs ᴀᴅᴅᴇᴅ!**\n📊 **ᴛᴏᴛᴀʟ ᴀᴄᴛɪᴠᴇ ᴛᴏᴋᴇɴs:** {len(GEMINI_KEYS)} {random.choice(PREMIUM_EMOJIS)}</blockquote>", parse_mode=ParseMode.HTML)
 
 # ─────────────────────────────
 # 🛠️ MANUAL BAN COMMAND
@@ -36,12 +60,13 @@ async def ban_manual_sticker(client, message: Message):
     sticker_id = sticker.file_unique_id
     pack_name = sticker.set_name
     
-    # Check command structure like /bansticker pack
     if len(message.command) > 1 and message.command[1].lower() == "pack" and pack_name:
         BANNED_PACKS.add(pack_name)
         text = f"<blockquote>✅ ғᴜʟʟ sᴛɪᴄᴋᴇʀ ᴘᴀᴄᴋ ᴀᴅᴅᴇᴅ ᴛᴏ ʙʟᴀᴄᴋʟɪsᴛ! {random.choice(PREMIUM_EMOJIS)}</blockquote>"
     else:
         BANNED_STICKERS.add(sticker_id)
+        if sticker_id in SAFE_STICKERS:
+            SAFE_STICKERS.remove(sticker_id)
         text = f"<blockquote>✅ sɪɴɢʟᴇ sᴛɪᴄᴋᴇʀ ᴀᴅᴅᴇᴅ ᴛᴏ ʙʟᴀᴄᴋʟɪsᴛ! {random.choice(PREMIUM_EMOJIS)}</blockquote>"
     
     try:
@@ -83,61 +108,75 @@ async def toggle_nsfw(client, message: Message):
     except: pass
 
 # ─────────────────────────────
-# 👁️ GROQ VISION ENGINE (Percentage Hack)
+# 👁️ GEMINI 2.5 FLASH ENGINE (Load Balancer)
 # ─────────────────────────────
-async def analyze_media_groq(image_path):
+async def analyze_media_gemini(image_path):
+    if not GEMINI_KEYS:
+        print("Gemini API Keys missing! Add via /settoken")
+        return -1
+        
     try:
         img = Image.open(image_path).convert("RGB")
         jpg_path = image_path + ".jpg"
-        img.save(jpg_path, "JPEG")
+        img.save(jpg_path, "JPEG", quality=80)
         
         with open(jpg_path, "rb") as f:
             img_b64 = base64.b64encode(f.read()).decode('utf-8')
             
-        headers = {
-            "Authorization": f"Bearer {NSFWAPI}",
-            "Content-Type": "application/json"
-        }
-        
-        # 🔥 The Percentage Prompt Hack
         prompt = "Analyze this image for NSFW, nudity, or adult suggestive content. Reply ONLY with a valid JSON format: {\"nsfw_percentage\": X} where X is a number from 0 to 100 representing the probability of it being NSFW. Do not output any other text."
         
         payload = {
-            "model": "llama-3.2-11b-vision-preview",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
-                    ]
-                }
-            ],
-            "temperature": 0.1,
-            "max_tokens": 20
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": "image/jpeg", "data": img_b64}}
+                ]
+            }],
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": 20
+            }
         }
         
+        headers = {"Content-Type": "application/json"}
+        
+        # 🔥 Random key pick karega load balancing ke liye
+        keys_to_try = list(GEMINI_KEYS)
+        random.shuffle(keys_to_try)
+        
         async with aiohttp.ClientSession() as session:
-            async with session.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=20) as resp:
-                data = await resp.json()
-                os.remove(jpg_path)
+            for api_key in keys_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
                 
-                if "choices" in data:
-                    text = data["choices"][0]["message"]["content"].strip()
-                    # JSON Extract hack (in case LLM adds backticks)
-                    match = re.search(r'\{.*\}', text, re.DOTALL)
-                    if match:
-                        res_dict = json.loads(match.group())
-                        return int(res_dict.get("nsfw_percentage", 0))
-                    return 0 # Default safe if parsing fails
-                elif "error" in data:
-                    # Agar Groq safety policy ki wajah se error fenke (highly explicit)
-                    if "safety" in str(data).lower():
-                        return 100 
-                return -1
+                async with session.post(url, headers=headers, json=payload, timeout=20) as resp:
+                    data = await resp.json()
+                    
+                    # Agar limit cross ho gayi (429), toh ignore karke loop mein next key pe jayega
+                    if resp.status == 429:
+                        print("Rate limit hit! Switching to next Gemini key...")
+                        continue
+                        
+                    if resp.status == 200:
+                        os.remove(jpg_path)
+                        candidate = data.get("candidates", [{}])[0]
+                        
+                        if candidate.get("finishReason") == "SAFETY":
+                            return 100 
+                            
+                        text = candidate.get("content", {}).get("parts", [{}])[0].get("text", "")
+                        match = re.search(r'\{.*\}', text, re.DOTALL)
+                        if match:
+                            res_dict = json.loads(match.group())
+                            return int(res_dict.get("nsfw_percentage", 0))
+                        return 0
+                    
+            # Agar saari keys try ho gayi aur fail ho gaya
+            if os.path.exists(jpg_path):
+                os.remove(jpg_path)
+            return -1
                     
     except Exception as e:
-        print(f"Groq Vision Crash: {e}")
+        print(f"Gemini Vision Crash: {e}")
         return -1
 
 # ─────────────────────────────
@@ -145,10 +184,13 @@ async def analyze_media_groq(image_path):
 # ─────────────────────────────
 @app.on_message(filters.command("teststic") & filters.reply)
 async def test_sticker(client, message: Message):
+    if not GEMINI_KEYS:
+        return await message.reply("<blockquote>❌ ᴘʟᴇᴀsᴇ ᴀᴅᴅ ᴀᴘɪ ᴋᴇʏs ᴜsɪɴɢ `/settoken` ғɪʀsᴛ!</blockquote>", parse_mode=ParseMode.HTML)
+
     if not message.reply_to_message.sticker and not message.reply_to_message.photo:
         return await message.reply("<blockquote>⚠️ ᴘʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ sᴛɪᴄᴋᴇʀ ᴏʀ ᴘʜᴏᴛᴏ ᴛᴏ ᴛᴇsᴛ!</blockquote>", parse_mode=ParseMode.HTML)
     
-    wait_msg = await message.reply("<blockquote>⏳ sᴄᴀɴɴɪɴɢ ɪᴍᴀɢᴇ ᴠɪᴀ ɢʀᴏǫ ᴠɪsɪᴏɴ...</blockquote>", parse_mode=ParseMode.HTML)
+    wait_msg = await message.reply("<blockquote>⏳ sᴄᴀɴɴɪɴɢ ɪᴍᴀɢᴇ ᴠɪᴀ ɢᴇᴍɪɴɪ 2.5 ғʟᴀsʜ...</blockquote>", parse_mode=ParseMode.HTML)
     
     dl_path = None
     target_msg = message.reply_to_message
@@ -164,19 +206,26 @@ async def test_sticker(client, message: Message):
         if not dl_path:
             return await wait_msg.edit("<blockquote>❌ FAILED TO DOWNLOAD MEDIA.</blockquote>", parse_mode=ParseMode.HTML)
 
-        score = await analyze_media_groq(dl_path)
+        score = await analyze_media_gemini(dl_path)
         
         if os.path.exists(dl_path):
             os.remove(dl_path)
             
         if score == -1:
-            return await wait_msg.edit("<blockquote>❌ API ERROR OR CRASH.</blockquote>", parse_mode=ParseMode.HTML)
+            return await wait_msg.edit("<blockquote>❌ API ERROR OR LIMIT REACHED ON ALL KEYS.</blockquote>", parse_mode=ParseMode.HTML)
             
-        action = "🟢 SAFE (Ignored)"
+        action = "🟢 SAFE (Added to Safe DB)"
         if score >= 80:
             action = "🔴 HIGH NSFW (Banning Full Pack)"
+            if target_msg.sticker and target_msg.sticker.set_name:
+                BANNED_PACKS.add(target_msg.sticker.set_name)
         elif score >= 50:
             action = "🟠 MED NSFW (Banning Single Sticker)"
+            if target_msg.sticker:
+                BANNED_STICKERS.add(target_msg.sticker.file_unique_id)
+        else:
+            if target_msg.sticker:
+                SAFE_STICKERS.add(target_msg.sticker.file_unique_id)
             
         result_text = f"<blockquote>👁️ **ᴠɪsɪᴏɴ ᴛᴇsᴛ ʀᴇsᴜʟᴛs:**\n\n📊 **sᴄᴏʀᴇ:** {score}%\n🎯 **ᴀᴄᴛɪᴏɴ:** {action}</blockquote>"
         await wait_msg.edit(result_text, parse_mode=ParseMode.HTML)
@@ -185,7 +234,7 @@ async def test_sticker(client, message: Message):
         await wait_msg.edit(f"<blockquote>❌ Error: {e}</blockquote>", parse_mode=ParseMode.HTML)
 
 # ─────────────────────────────
-# 🚨 MAIN SCANNER (SILENT & SMART PACK BAN)
+# 🚨 MAIN SCANNER (SILENT, SMART PACK BAN & CACHING)
 # ─────────────────────────────
 @app.on_message((filters.photo | filters.sticker) & filters.group & ~BANNED_USERS)
 async def nsfw_scanner(client, message: Message):
@@ -203,8 +252,11 @@ async def nsfw_scanner(client, message: Message):
                 await message.delete()
             except Exception: pass
             return
+            
+        if sticker_id in SAFE_STICKERS:
+            return
 
-    # 2. DOWNLOAD & SCAN
+    # 2. DOWNLOAD & SCAN (Agar pehli baar sticker dekha hai)
     dl_path = None
     try:
         if message.sticker and (message.sticker.is_animated or message.sticker.is_video):
@@ -216,12 +268,11 @@ async def nsfw_scanner(client, message: Message):
             dl_path = await message.download()
         
         if dl_path:
-            score = await analyze_media_groq(dl_path)
+            score = await analyze_media_gemini(dl_path)
             
             if os.path.exists(dl_path):
                 os.remove(dl_path)
                 
-            # Logic: >= 80% (Ban Pack), >= 50% (Ban Sticker)
             if score >= 50:
                 if message.sticker:
                     if score >= 80 and message.sticker.set_name:
@@ -237,6 +288,10 @@ async def nsfw_scanner(client, message: Message):
                          await asyncio.sleep(10)
                          try: await perm_msg.delete()
                          except: pass
+            
+            elif score != -1:
+                if message.sticker:
+                    SAFE_STICKERS.add(message.sticker.file_unique_id)
                          
     except Exception as e:
         print(f"Scanner crash: {e}")
