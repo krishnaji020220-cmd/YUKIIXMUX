@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symphony - The Modern Music Player</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fa-brands fa-spotify"></i>
+                <span>Symphony</span>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="active" data-tab="home"><i class="fa-solid fa-house"></i> Home</li>
+                <li data-tab="search"><i class="fa-solid fa-magnifying-glass"></i> Search</li>
+                <li data-tab="liked"><i class="fa-solid fa-heart"></i> Liked Songs</li>
+                <li data-tab="recent"><i class="fa-solid fa-clock-rotate-left"></i> Recently Played</li>
+            </ul>
+
+            <div class="playlists-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 12px 12px;">
+                    <h3>My Playlists</h3>
+                    <button id="create-playlist-btn" class="icon-btn" style="color: white;"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <ul class="playlist-list" id="playlist-container">
+                    <!-- Dynamic Playlists will go here -->
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="nav-arrows">
+                    <button class="icon-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button class="icon-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="search-container" id="search-box-container" style="display: none;">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="search-input" placeholder="What do you want to listen to?">
+                </div>
+                <div class="user-profile">
+                    <button class="explore-btn">Explore Premium</button>
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                </div>
+            </header>
+
+            <div class="content-scroll">
+                <!-- Home Section -->
+                <section id="home-view" class="view-section active">
+                    <h2 class="section-title text-gradient">Good Afternoon</h2>
+                    <div class="quick-picks-grid" id="quick-picks">
+                        <!-- Quick Picks dynamically added here -->
+                    </div>
+
+                    <h2 class="section-title mt-2">Trending Now</h2>
+                    <div class="song-card-grid" id="trending-grid">
+                        <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> Loading tracks...</div>
+                        <!-- Songs dynamically added here -->
+                    </div>
+                </section>
+
+                <!-- Search Section -->
+                <section id="search-view" class="view-section" style="display: none;">
+                    <h2 class="section-title">Search Results</h2>
+                    <div class="song-card-grid" id="search-results-grid">
+                        <p class="empty-state">Start typing to search for songs, artists, or albums...</p>
+                    </div>
+                </section>
+
+                <!-- Liked Songs Section -->
+                <section id="liked-view" class="view-section" style="display: none;">
+                    <div class="liked-header">
+                        <div class="liked-icon"><i class="fa-solid fa-heart"></i></div>
+                        <div class="liked-info">
+                            <span>Playlist</span>
+                            <h1 class="text-gradient">Liked Songs</h1>
+                            <p id="liked-count">0 songs</p>
+                        </div>
+                    </div>
+                    <div class="song-list" id="liked-songs-list">
+                        <!-- Liked songs as list items -->
+                    </div>
+                </section>
+
+                <!-- Recently Played Section -->
+                <section id="recent-view" class="view-section" style="display: none;">
+                    <h2 class="section-title">Recently Played</h2>
+                    <div class="song-list" id="recent-songs-list">
+                        <!-- Recent songs -->
+                    </div>
+                </section>
+
+                <!-- Specific Playlist Section -->
+                <section id="playlist-detail-view" class="view-section" style="display: none;">
+                    <div class="liked-header">
+                        <div class="liked-icon" style="background: linear-gradient(135deg, #1db954, #121212);"><i class="fa-solid fa-music"></i></div>
+                        <div class="liked-info">
+                            <span>Playlist</span>
+                            <h1 class="text-gradient" id="playlist-detail-title">Playlist Name</h1>
+                            <p id="playlist-detail-count">0 songs</p>
+                        </div>
+                    </div>
+                    <div class="song-list" id="playlist-detail-list">
+                        <!-- Playlist songs -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add to Playlist Modal -->
+    <div id="playlist-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add to Playlist</h3>
+                <button class="icon-btn" id="close-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <ul class="playlist-list" id="modal-playlist-list" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Playlists rendered here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Audio Player -->
+    <div class="player-bar">
+        <!-- Now Playing Info -->
+        <div class="now-playing" id="now-playing-info" style="opacity: 0;">
+            <img src="https://via.placeholder.com/60" alt="Album Art" id="player-art">
+            <div class="track-info">
+                <h4 id="player-title">Song Title</h4>
+                <p id="player-artist">Artist Name</p>
+            </div>
+            <button class="icon-btn like-btn" id="player-like-btn"><i class="fa-regular fa-heart"></i></button>
+        </div>
+
+        <!-- Player Controls -->
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="icon-btn"><i class="fa-solid fa-shuffle"></i></button>
+                <button class="icon-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
+                <button class="play-pause-btn" id="play-pause-btn"><i class="fa-solid fa-play"></i></button>
+                <button class="icon-btn" id="next-btn"><i class="fa-solid fa-forward-step"></i></button>
+                <button class="icon-btn"><i class="fa-solid fa-repeat"></i></button>
+            </div>
+            <div class="progress-container">
+                <span class="time" id="current-time">0:00</span>
+                <div class="progress-bar-wrapper" id="progress-wrapper">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <span class="time" id="total-time">0:00</span>
+            </div>
+        </div>
+
+        <!-- Volume Controls -->
+        <div class="volume-controls">
+            <button class="icon-btn"><i class="fa-solid fa-microphone"></i></button>
+            <button class="icon-btn"><i class="fa-solid fa-list-ul"></i></button>
+            <button class="icon-btn" id="mute-btn"><i class="fa-solid fa-volume-high"></i></button>
+            <div class="volume-bar-wrapper" id="volume-wrapper">
+                <div class="volume-bar" id="volume-bar" style="width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Audio Element -->
+    <audio id="audio-element"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
