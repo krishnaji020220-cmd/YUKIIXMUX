@@ -7,6 +7,10 @@ from PIL import Image
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.enums import ChatAction, ParseMode
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from SHUKLAMUSIC import app
 from config import BANNED_USERS
@@ -17,7 +21,11 @@ from config import BANNED_USERS
 chat_history = {}
 sticker_pack = [] # Store custom stickers here
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
+# Get Nvidia API Key from .env
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
+KIMI_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+
+# Vision ke liye tera local Ollama hi use hoga (Moondream)
 OLLAMA_VISION = "http://localhost:11434/api/generate"
 
 # Premium Peach Goma Emojis
@@ -35,16 +43,37 @@ PREMIUM_EMOJIS = [
 # ─────────────────────────────
 # HELPER FUNCTIONS
 # ─────────────────────────────
-async def get_ollama_response(messages_list):
-    payload = {
-        "model": "llama3.2:1b",
-        "messages": messages_list,
-        "stream": False
+async def get_kimi_response(messages_list):
+    """
+    Ab ye function Kimi 2.5 (Nvidia API) se chat karega
+    """
+    headers = {
+        "Authorization": f"Bearer {NVIDIA_API_KEY}",
+        "Accept": "application/json"
     }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(OLLAMA_URL, json=payload) as resp:
-            data = await resp.json()
-            return data["message"]["content"]
+    payload = {
+        "model": "moonshotai/kimi-k2.5",
+        "messages": messages_list,
+        "max_tokens": 1024, # Bot replies ke liye 1024 kafi hai, speed fast rahegi
+        "temperature": 1.00,
+        "top_p": 1.00,
+        "stream": False,
+        "chat_template_kwargs": {"thinking": True}
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(KIMI_API_URL, headers=headers, json=payload) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    # Kimi ka reply nikalna
+                    return data["choices"][0]["message"]["content"]
+                else:
+                    print(f"Nvidia API Error: {await resp.text()}")
+                    return "Yaar mera internet thoda slow chal raha hai, Sudeep ko bolo API check kare! 😅"
+    except Exception as e:
+        print(f"Kimi Request Error: {e}")
+        return "Oops! Kuch gadbad ho gayi yaar."
 
 async def analyze_image_moondream(image_path):
     try:
@@ -147,7 +176,8 @@ async def yuki_chat(client, message: Message):
     history_to_send = chat_history[user_id][-8:]
     messages_payload = [get_system_prompt(user_name)] + [{"role": msg["role"], "content": msg["content"]} for msg in history_to_send]
 
-    yuki_reply = await get_ollama_response(messages_payload)
+    # Ab Yaha par Ollama ki jagah Kimi function call ho raha hai
+    yuki_reply = await get_kimi_response(messages_payload)
     
     # Save the plain text to memory so the bot doesn't get confused by its own HTML tags later
     chat_history[user_id].append({"role": "assistant", "content": yuki_reply})
@@ -166,4 +196,4 @@ async def yuki_chat(client, message: Message):
         await message.reply_sticker(random.choice(sticker_pack))
 
     await message.reply(final_reply, parse_mode=ParseMode.HTML)
-
+    
