@@ -24,6 +24,16 @@
     ─「 ᴅᴇᴩʟᴏʏ ᴏɴ ʟᴏᴄᴀʟ ʜᴏsᴛ / ᴠᴘs 」─
 </h3>- Get your Necessary Variables
 
+- one time cmds
+- git clone https://github.com/SUDEEPBOTS/MYRDLMUSIC
+
+- cd MYRDLMUSIC
+- chmod +x setup.sh
+- ./setup.sh
+- done your bot is live
+
+
+
 - Upgrade and Update :
   "sudo apt-get update && sudo apt-get upgrade -y"
 
