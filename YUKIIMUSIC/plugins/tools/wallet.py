@@ -211,3 +211,73 @@ async def transfer_to_other_gc(client, message: Message):
         try: await trigger_smm_reward(client, message, target_chat_id)
         except: pass
       
+# ==========================================
+#        BALANCE & PRIVACY COMMANDS
+# ==========================================
+
+@app.on_message(filters.command(["bal", "balance", "mybal", "mybalance"], prefixes=["/", ".", "!"]) & filters.group)
+async def check_user_balance(client, message: Message):
+    # Check if replied to a user or checking own balance
+    if message.reply_to_message:
+        target_user = message.reply_to_message.from_user
+    else:
+        target_user = message.from_user
+
+    if not target_user:
+        return await message.reply(smallcaps("User not found!"))
+
+    is_self = (target_user.id == message.from_user.id)
+    user_data = await game_db.find_one({"user_id": target_user.id})
+    
+    points = user_data.get("points", 0) if user_data else 0
+    is_hidden = user_data.get("hidden", False) if user_data else False
+
+    # Privacy Check
+    if not is_self and is_hidden:
+        return await message.reply(f"<emoji id='6073371665381724173'>❌</emoji> **{smallcaps('Privacy Alert:')}** {smallcaps('This user has hidden their balance from others!')}")
+
+    # UI Formatting
+    user_name = smallcaps(target_user.first_name)
+    status_msg = f" (<emoji id='6073165416757203109'>👻</emoji> {smallcaps('Hidden')})" if (is_self and is_hidden) else ""
+
+    text = (
+        f"<emoji id='6073552504979722691'>🏦</emoji> **{user_name}'s {smallcaps('Bank')}**\n\n"
+        f"<emoji id='6073321555998282076'>💰</emoji> **{smallcaps('Total Points:')}** `{points}`\n"
+        f"<emoji id='6071348606936289251'>🆔</emoji> **{smallcaps('User ID:')}** `{target_user.id}`{status_msg}\n\n"
+        f"<emoji id='6071046056555058251'>💖</emoji> *{smallcaps('Earn more points by playing mini-games!')}*"
+    )
+    
+    await message.reply(text)
+
+
+@app.on_message(filters.command(["hide", "hidebal", "unhide", "unhidebal"], prefixes=["/", ".", "!"]) & filters.group)
+async def toggle_privacy(client, message: Message):
+    user_id = message.from_user.id
+    user_data = await game_db.find_one({"user_id": user_id})
+    
+    # Agar user pehli baar command chala raha hai aur DB mein nahi hai, toh add kar do
+    if not user_data:
+        await game_db.insert_one({"user_id": user_id, "name": message.from_user.first_name, "points": 0, "hidden": False})
+        current_status = False
+    else:
+        current_status = user_data.get("hidden", False)
+
+    # Command ke hisaab se logic (hide/unhide)
+    command = message.command[0].lower()
+    
+    if command in ["hide", "hidebal"]:
+        new_status = True
+        reply_msg = f"<emoji id='6073423432622544061'>✅</emoji> {smallcaps('Done! Your balance is now')} **{smallcaps('HIDDEN')}** {smallcaps('from other users.')} <emoji id='6073165416757203109'>👻</emoji>"
+    elif command in ["unhide", "unhidebal"]:
+        new_status = False
+        reply_msg = f"<emoji id='6073423432622544061'>✅</emoji> {smallcaps('Done! Your balance is now')} **{smallcaps('VISIBLE')}** {smallcaps('to everyone.')} <emoji id='6071252777625981483'>🚀</emoji>"
+    
+    # Agar already same status hai toh faltu update mat karo
+    if current_status == new_status:
+        return await message.reply(f"<emoji id='6073117703965511893'>🎯</emoji> {smallcaps('Your balance is already')} {'hidden' if new_status else 'visible'}!")
+
+    # Update database
+    await game_db.update_one({"user_id": user_id}, {"$set": {"hidden": new_status}})
+    
+    await message.reply(reply_msg)
+    
