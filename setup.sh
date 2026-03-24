@@ -87,7 +87,7 @@ sudo npm install -g pm2
 # 7. DEPLOY THE BOT
 echo -e "\n${BOLD}${CYAN}[ DEPLOYING YUKI BOT ]${NC}"
 # Passing module name as argument to the python executable in venv
-pm2 start "venv/bin/python3" --name "YukiBot" -- -m YUKIIMUSIC
+pm2 start "venv/bin/python3" --name "YukiBot1" -- -m YUKIIMUSIC
 pm2 save
 
 # 8. DISPLAY LOGS
