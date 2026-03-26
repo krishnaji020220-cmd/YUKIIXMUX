@@ -252,7 +252,7 @@ async def check_and_send_claim(client, chat_id, user_id, message_id, success_tex
     
     # Agar registered NAHI hai, tabhi claim button bhejo
     if not is_registered:
-        markup = [[{"text": f"🤖 {smallcaps('Start Bot in DM to Claim Profile!')}", "url": f"https://t.me/{app.username}?start=claim", "style": "success", "icon_custom_emoji_id": "6001132493011425597"}]]
+        markup = [[{"text": f"💓 {smallcaps('Start in DM to Claim')}", "url": f"https://t.me/{app.username}?start=claim", "style": "success", "icon_custom_emoji_id": "6001132493011425597"}]]
         await inject_premium_markup(chat_id, run.id, markup)
 
 @app.on_callback_query(filters.regex(r"^(emg|flg)_"))
