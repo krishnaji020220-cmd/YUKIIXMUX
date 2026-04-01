@@ -16,7 +16,7 @@ from YUKIIMUSIC.utils.database import get_served_chats, get_served_users
 #              CONFIGURATION
 # ==========================================
 # Yaha apni Groq API key daalo
-GROQ_API_KEY = "YOUR_GROQ_API_KEY_HERE"
+GROQ_API_KEY = "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"
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 
 # India holidays setup
@@ -44,7 +44,7 @@ async def generate_ai_wish(event_name):
     try:
         # LLaMA 3 8B is extremely fast and great for short texts
         response = await groq_client.chat.completions.create(
-            model="llama3-8b-8192", 
+            model="llama-3.3-70b-versatile", 
             messages=[
                 {
                     "role": "system", 
