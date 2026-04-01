@@ -21,19 +21,55 @@ CACHE_TIME = 0 # TEST KARTE TIME ISKO 0 RAKHA HAI. BAAD MEIN 300 (5 mins) KAR DE
 # ----------------- ANTI-SPAM LOGIC -----------------
 USER_MESSAGE_HISTORY = {} 
 BLOCKED_USERS = {}
+spam_lock = asyncio.Lock() # Fix for rapid async spam bypassing lists
 
 SPAM_THRESHOLD = 7 
 SPAM_WINDOW = 5 
 BLOCK_DURATION = 1200 
 
+# ----------------- MILESTONE LOGIC -----------------
+# Chatwise store to avoid sending multiple messages for same milestone
+MILESTONES_REACHED = {} 
+
 # ----------------- DB FUNCTIONS -----------------
-async def update_message_count(chat_id: int, user_id: int, name: str):
+async def update_message_count_and_check_milestone(chat_id: int, user_id: int, name: str):
     today = datetime.utcnow().strftime("%Y-%m-%d")
+    
+    # 1. Update user count
     await message_collection.update_one(
         {"chat_id": chat_id, "user_id": user_id, "date": today},
         {"$inc": {"count": 1}, "$set": {"name": name}},
         upsert=True
     )
+    
+    # 2. Check total messages today for milestone
+    pipeline_total = [
+        {"$match": {"chat_id": chat_id, "date": today}},
+        {"$group": {"_id": None, "total": {"$sum": "$count"}}}
+    ]
+    cursor = message_collection.aggregate(pipeline_total)
+    data = await cursor.to_list(length=1)
+    
+    if data:
+        total_today = data[0]['total']
+        
+        # Check if total is a multiple of 1000
+        if total_today > 0 and total_today % 1000 == 0:
+            if chat_id not in MILESTONES_REACHED:
+                MILESTONES_REACHED[chat_id] = []
+                
+            # Avoid sending same milestone twice
+            if total_today not in MILESTONES_REACHED[chat_id]:
+                MILESTONES_REACHED[chat_id].append(total_today)
+                
+                # Format time as HH:MM
+                current_time_str = datetime.now().strftime("%H:%M")
+                msg_text = f"💪 {total_today} messages reached today! ({current_time_str})"
+                
+                try:
+                    await app.send_message(chat_id, msg_text)
+                except Exception as e:
+                    print(f"Failed to send milestone msg: {e}")
 
 async def get_leaderboard_data(chat_id: int, timeframe: str):
     match_query = {"chat_id": chat_id}
@@ -66,7 +102,6 @@ async def get_leaderboard_data(chat_id: int, timeframe: str):
 
 # ----------------- FORMATTING HELPER -----------------
 def build_caption(data: list, total_messages: int) -> str:
-    # AGAR DATA 0 HAI, TOH YE TEXT JAYEGA
     if not data or total_messages == 0:
         return "📈 LEADERBOARD\n\n✉️ Total messages: 0\n\nEnable AI Summary in this group using the /upgrade command."
         
@@ -84,7 +119,7 @@ def build_caption(data: list, total_messages: int) -> str:
 # ----------------- IMAGE GENERATION -----------------
 def generate_leaderboard_image(data: list, timeframe: str) -> BytesIO:
     if not data:
-        return None # Agar data nahi hai toh image banani hi nahi hai
+        return None 
         
     template_path = "YUKIIMUSIC/assets/template.png"
     if not os.path.exists(template_path):
@@ -144,37 +179,45 @@ async def count_messages(client, message: Message):
     user_id = message.from_user.id
     current_time = time.time()
     
-    # 1. Check Block Status
+    # 1. Check Block Status First (Fast return)
     if user_id in BLOCKED_USERS:
         if current_time < BLOCKED_USERS[user_id]:
-            return # Abhi block hai, database nahi badhega. Return.
+            return 
         else:
-            del BLOCKED_USERS[user_id] # Time over, block hatao.
+            del BLOCKED_USERS[user_id] 
 
-    # 2. Update Message History
-    if user_id not in USER_MESSAGE_HISTORY:
-        USER_MESSAGE_HISTORY[user_id] = []
+    # Use lock to prevent race conditions during rapid spam
+    async with spam_lock:
+        if user_id not in USER_MESSAGE_HISTORY:
+            USER_MESSAGE_HISTORY[user_id] = []
+            
+        USER_MESSAGE_HISTORY[user_id].append(current_time)
         
-    USER_MESSAGE_HISTORY[user_id].append(current_time)
-    
-    # 3. Clean old timestamps outside the window
-    USER_MESSAGE_HISTORY[user_id] = [msg_time for msg_time in USER_MESSAGE_HISTORY[user_id] if current_time - msg_time <= SPAM_WINDOW]
-    
-    # 4. Check if limit exceeded
-    if len(USER_MESSAGE_HISTORY[user_id]) >= SPAM_THRESHOLD:
-        BLOCKED_USERS[user_id] = current_time + BLOCK_DURATION
-        USER_MESSAGE_HISTORY[user_id] = [] # Clear history
+        # Clean old timestamps
+        USER_MESSAGE_HISTORY[user_id] = [msg_time for msg_time in USER_MESSAGE_HISTORY[user_id] if current_time - msg_time <= SPAM_WINDOW]
         
-        try:
-            warning_msg = await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes from the leaderboard.")
-            await asyncio.sleep(10)
-            await warning_msg.delete()
-        except:
-            pass
-        return # Spammer hai, rank mat badhao.
-        
-    # 5. Normal User, update count
-    asyncio.create_task(update_message_count(message.chat.id, message.from_user.id, message.from_user.first_name))
+        # Check if limit exceeded
+        if len(USER_MESSAGE_HISTORY[user_id]) >= SPAM_THRESHOLD:
+            BLOCKED_USERS[user_id] = current_time + BLOCK_DURATION
+            USER_MESSAGE_HISTORY[user_id] = [] # Clear history
+            
+            try:
+                warning_msg = await message.reply_text(f"⛔️ {message.from_user.mention} is flooding: blocked for 20 minutes from the leaderboard.")
+                # We do not block the thread here, we create a task to delete the msg later
+                async def delete_warn():
+                    await asyncio.sleep(10)
+                    try:
+                        await warning_msg.delete()
+                    except:
+                        pass
+                asyncio.create_task(delete_warn())
+            except:
+                pass
+            return 
+            
+    # If not blocked, update DB and check milestones
+    asyncio.create_task(update_message_count_and_check_milestone(message.chat.id, message.from_user.id, message.from_user.first_name))
+
 
 # 2. Main Command Handler (Leaderboard)
 @app.on_message(filters.command(["rank", "rankings"], prefixes=["/", "."]) & filters.group)
@@ -200,15 +243,47 @@ async def leaderboard_cmd(client, message: Message):
     caption_text = build_caption(data, total_msgs)
     
     if not data or total_msgs == 0:
-        # NO DATA - SEND ONLY TEXT
         sent_msg = await app.send_message(chat_id, caption_text, reply_markup=lb_buttons(timeframe))
         LEADERBOARD_CACHE[cache_key] = {"is_text_only": True, "caption": caption_text, "expiry": time.time() + CACHE_TIME}
     else:
-        # HAS DATA - SEND PHOTO
         img_stream = generate_leaderboard_image(data, timeframe)
         if img_stream:
             sent_msg = await app.send_photo(chat_id, photo=img_stream, caption=caption_text, reply_markup=lb_buttons(timeframe), has_spoiler=True)
             LEADERBOARD_CACHE[cache_key] = {"is_text_only": False, "image": sent_msg.photo.file_id, "caption": caption_text, "expiry": time.time() + CACHE_TIME}
+        else:
+            await app.send_message(chat_id, "❌ Template image not found!")
+
+# ----------------- FORCE UPDATE COMMAND -----------------
+@app.on_message(filters.command(["force", "fc"], prefixes=["/", "."]) & filters.group)
+async def force_leaderboard_update(client, message: Message):
+    chat_id = message.chat.id
+    
+    try:
+        await message.delete()
+    except:
+        pass
+        
+    # Clear the cache for this specific chat for all timeframes
+    for tf in ["overall", "today", "week"]:
+        cache_key = f"{chat_id}_{tf}"
+        if cache_key in LEADERBOARD_CACHE:
+            del LEADERBOARD_CACHE[cache_key]
+            
+    # Send a fresh leaderboard (defaulting to overall)
+    timeframe = "overall"
+    data, total_msgs = await get_leaderboard_data(chat_id, timeframe)
+    caption_text = build_caption(data, total_msgs)
+    
+    if not data or total_msgs == 0:
+        sent_msg = await app.send_message(chat_id, caption_text, reply_markup=lb_buttons(timeframe))
+        # Re-cache the new data
+        LEADERBOARD_CACHE[f"{chat_id}_{timeframe}"] = {"is_text_only": True, "caption": caption_text, "expiry": time.time() + CACHE_TIME}
+    else:
+        img_stream = generate_leaderboard_image(data, timeframe)
+        if img_stream:
+            sent_msg = await app.send_photo(chat_id, photo=img_stream, caption=caption_text, reply_markup=lb_buttons(timeframe), has_spoiler=True)
+            # Re-cache the new data
+            LEADERBOARD_CACHE[f"{chat_id}_{timeframe}"] = {"is_text_only": False, "image": sent_msg.photo.file_id, "caption": caption_text, "expiry": time.time() + CACHE_TIME}
         else:
             await app.send_message(chat_id, "❌ Template image not found!")
 
@@ -226,14 +301,12 @@ async def leaderboard_callback(client, query):
     caption_text = build_caption(data, total_msgs)
     
     if not data or total_msgs == 0:
-        # NO DATA STATE
         if is_current_msg_photo:
             await query.message.delete()
             await app.send_message(chat_id, caption_text, reply_markup=lb_buttons(timeframe))
         else:
             await query.edit_message_text(caption_text, reply_markup=lb_buttons(timeframe))
     else:
-        # HAS DATA STATE (NEED PHOTO)
         img_stream = generate_leaderboard_image(data, timeframe)
         if img_stream:
             if not is_current_msg_photo:
@@ -253,21 +326,26 @@ async def close_leaderboard_callback(client, query):
         await query.answer("❌ Failed to delete message.", show_alert=True)
 
 # ----------------- TESTER COMMAND -----------------
-# Ye tu group mein /spamtest bhej ke check kar sakta hai
 @app.on_message(filters.command(["spamtest", "testspam"], prefixes=["/", "."]) & filters.group)
 async def manual_spam_trigger(client, message: Message):
     user_id = message.from_user.id
     current_time = time.time()
     
-    # Force block the user who ran the command
     BLOCKED_USERS[user_id] = current_time + BLOCK_DURATION
     USER_MESSAGE_HISTORY[user_id] = []
     
     try:
         await message.delete()
         warning_msg = await message.reply_text(f"⛔️ [TEST] {message.from_user.mention} is flooding: blocked for 20 minutes from the leaderboard.")
-        await asyncio.sleep(10)
-        await warning_msg.delete()
+        
+        async def delete_warn():
+            await asyncio.sleep(10)
+            try:
+                await warning_msg.delete()
+            except:
+                pass
+        asyncio.create_task(delete_warn())
+        
     except:
         pass
-            
+    
