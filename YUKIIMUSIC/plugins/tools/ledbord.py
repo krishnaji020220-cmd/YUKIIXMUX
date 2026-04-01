@@ -76,7 +76,7 @@ def build_caption(data: list, total_messages: int) -> str:
 
 # ----------------- IMAGE GENERATION -----------------
 def generate_leaderboard_image(data: list, timeframe: str) -> BytesIO:
-    template_path = "assets/template.png"
+    template_path = "YUKIIMUSIC/assets/template.png"
     if not os.path.exists(template_path):
         return None
         
@@ -84,8 +84,8 @@ def generate_leaderboard_image(data: list, timeframe: str) -> BytesIO:
     draw = ImageDraw.Draw(img)
     
     try:
-        font = ImageFont.truetype("assets/font.ttf", 24)
-        font_small = ImageFont.truetype("assets/font.ttf", 18)
+        font = ImageFont.truetype("YUKIIMUSIC/assets/font.ttf", 24)
+        font_small = ImageFont.truetype("YUKIIMUSIC/assets/font.ttf", 18)
     except:
         font = ImageFont.load_default()
         font_small = ImageFont.load_default()
