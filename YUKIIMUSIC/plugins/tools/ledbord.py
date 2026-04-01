@@ -16,7 +16,7 @@ db = mongodb.leaderboard_db
 message_collection = db.message_counts
 
 LEADERBOARD_CACHE = {}
-CACHE_TIME = 0 # TEST KARTE TIME ISKO 0 RAKHA HAI. BAAD MEIN 300 (5 mins) KAR DENA!
+CACHE_TIME = 400 # TEST KARTE TIME ISKO 0 RAKHA HAI. BAAD MEIN 300 (5 mins) KAR DENA!
 
 # ----------------- ANTI-SPAM LOGIC -----------------
 USER_MESSAGE_HISTORY = {} 
@@ -408,7 +408,7 @@ async def leaderboard_callback(client, query):
     cache_key = f"{rank_type}_{target_id}_{timeframe}"
     is_current_msg_photo = bool(query.message.photo)
 
-    await query.answer("Fetching data...", show_alert=False)
+    await query.answer("wait....", show_alert=False)
     
     data, total_msgs = await get_rank_data(timeframe, rank_type, chat_id if rank_type=="local" else None, user_id)
     caption_text = build_caption(data, total_msgs, rank_type, custom_name)
@@ -469,7 +469,7 @@ async def manual_spam_trigger(client, message: Message):
         await message.delete()
         warning_msg = await message.reply_text(f"⛔️ [TEST] {message.from_user.mention} is flooding: blocked for 20 minutes.")
         async def delete_warn():
-            await asyncio.sleep(10)
+            await asyncio.sleep(60)
             try:
                 await warning_msg.delete()
             except:
