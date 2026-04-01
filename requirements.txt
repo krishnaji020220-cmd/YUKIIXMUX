@@ -62,6 +62,9 @@ telegraph
 tgcrypto==1.2.5
 unidecode
 wget
+holidays
+apscheduler
+groq
 youtube-search
 youtube-search-python
 git+https://github.com/KurimuzonAkuma/pyrogram
