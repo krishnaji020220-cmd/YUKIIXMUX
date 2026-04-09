@@ -10,7 +10,7 @@ from YUKIIMUSIC.misc import SUDOERS, mongodb
 from YUKIIMUSIC.utils.decorators.language import language, languageCB
 from config import BANNED_USERS
 
-#
+# 🔥 PLAYER DATABASE SETUP
 playerdb = mongodb.player_settings
 
 async def get_player_style(chat_id):
@@ -42,7 +42,7 @@ async def set_player_on(chat_id, is_on: bool):
     await playerdb.update_one({"chat_id": chat_id}, {"$set": {"is_on": is_on}}, upsert=True)
 
 
-# 
+# 🔥 KEYBOARD GENERATOR
 def player_markup(style: int, is_on: bool, target_id):
     status = "✅ ᴏɴ" if is_on else "❌ ᴏғғ"
     return InlineKeyboardMarkup(
@@ -76,11 +76,11 @@ def get_digan_image(style: int):
     return config.STATS_IMG_URL
 
 
-# 
+# 🔥 COMMAND HANDLER
 @app.on_message(filters.command(["player", "gcplayer", "songplayer", "globalplayer"]) & ~BANNED_USERS)
 @language
 async def player_command(client, message: Message, _):
-    # Anonymous Admin Check
+    # Anonymous Admin Check for the command
     if message.sender_chat:
         return await message.reply_text("❌ ᴘʟᴇᴀsᴇ ᴅɪsᴀʙʟᴇ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ғɪʀsᴛ!")
 
@@ -118,7 +118,7 @@ async def player_command(client, message: Message, _):
     )
 
 
-# 
+# 🔥 CALLBACK HANDLERS
 @app.on_callback_query(filters.regex(r"^(set_player_|toggle_player_)") & ~BANNED_USERS)
 async def player_callbacks(client, CallbackQuery: CallbackQuery):
     data = CallbackQuery.data.split("_")
@@ -135,9 +135,6 @@ async def player_callbacks(client, CallbackQuery: CallbackQuery):
         target_id = int(target_id)
 
     # Security Checks
-    if CallbackQuery.sender_chat:
-        return await CallbackQuery.answer("❌ ᴘʟᴇᴀsᴇ ᴅɪsᴀʙʟᴇ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ғɪʀsᴛ!", show_alert=True)
-        
     if target_id == "GLOBAL":
         if CallbackQuery.from_user.id not in SUDOERS:
             return await CallbackQuery.answer("❌ ᴏɴʟʏ ʙᴏᴛ ᴏᴡɴᴇʀ ᴄᴀɴ ᴄʜᴀɴɢᴇ ɢʟᴏʙᴀʟ sᴇᴛᴛɪɴɢs!", show_alert=True)
@@ -187,9 +184,6 @@ async def player_callbacks(client, CallbackQuery: CallbackQuery):
 
 @app.on_callback_query(filters.regex("close_player_panel") & ~BANNED_USERS)
 async def close_player_cb(client, CallbackQuery: CallbackQuery):
-    if CallbackQuery.sender_chat:
-        return await CallbackQuery.answer("❌ ᴘʟᴇᴀsᴇ ᴅɪsᴀʙʟᴇ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ғɪʀsᴛ!", show_alert=True)
-
     if CallbackQuery.message.chat.type != ChatType.PRIVATE and CallbackQuery.from_user.id not in SUDOERS:
         member = await client.get_chat_member(CallbackQuery.message.chat.id, CallbackQuery.from_user.id)
         if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR]:
@@ -199,4 +193,3 @@ async def close_player_cb(client, CallbackQuery: CallbackQuery):
         await CallbackQuery.message.delete()
     except:
         pass
-
