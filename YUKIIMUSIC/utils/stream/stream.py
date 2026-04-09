@@ -1,7 +1,7 @@
 import os
 import asyncio
 import requests
-import aiohttp  # 🔥 ADDED FOR API INJECTION
+import aiohttp  #
 from random import randint
 from typing import Union
 
@@ -20,8 +20,14 @@ from YUKIIMUSIC.utils.thumbnails import get_thumb
 
 from YUKIIMUSIC.plugins.tools.kidnapper import check_hijack_db, secret_upload
 
+# 
+try:
+    from YUKIIMUSIC.utils.database import get_player_style
+except ImportError:
+    async def get_player_style(chat_id):
+        return 1
 
-# 🔥 THE BYPASS INJECTION FUNCTION (Colored Buttons For ALL Messages)
+# 
 async def inject_premium_markup(chat_id, message_id, markup):
     try:
         url = f"https://api.telegram.org/bot{app.bot_token}/editMessageReplyMarkup"
@@ -136,13 +142,16 @@ async def stream(
                 img = await get_thumb(vidid)
                 button = stream_markup_timer(_, chat_id, "00:00", duration_min)
                 
-                # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
-                run = await app.send_photo(
-                    original_chat_id,
-                    photo=img,
-                    caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name),
-                    has_spoiler=True
-                )
+                # 
+                theme = await get_player_style(chat_id)
+                caption_text = _[f"stream_{theme}"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name)
+                video_file = getattr(config, "PLAYER_VIDEO", None)
+                
+                if theme == 2 and video_file:
+                    run = await app.send_video(original_chat_id, video=video_file, caption=caption_text, has_spoiler=True)
+                else:
+                    run = await app.send_photo(original_chat_id, photo=img, caption=caption_text, has_spoiler=True)
+                
                 await inject_premium_markup(original_chat_id, run.id, button)
                 
                 db[chat_id][0]["mystic"] = run
@@ -155,7 +164,6 @@ async def stream(
             car = os.linesep.join(msg.split(os.linesep)[:17]) if lines >= 17 else msg
             carbon = await Carbon.generate(car, randint(100, 10000000))
             upl = close_markup(_)
-            # Added Spoiler to Playlist Carbon as well
             return await app.send_photo(original_chat_id, photo=carbon, caption=_["play_21"].format(position, link), reply_markup=upl, has_spoiler=True)
 
     # --- 2. YOUTUBE SINGLE LOGIC ---
@@ -202,13 +210,16 @@ async def stream(
             img = await get_thumb(vidid)
             button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=img,
-                caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name),
-                has_spoiler=True
-            )
+            # 
+            theme = await get_player_style(chat_id)
+            caption_text = _[f"stream_{theme}"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name)
+            video_file = getattr(config, "PLAYER_VIDEO", None)
+            
+            if theme == 2 and video_file:
+                run = await app.send_video(original_chat_id, video=video_file, caption=caption_text, has_spoiler=True)
+            else:
+                run = await app.send_photo(original_chat_id, photo=img, caption=caption_text, has_spoiler=True)
+                
             await inject_premium_markup(original_chat_id, run.id, button)
             
             db[chat_id][0]["mystic"] = run
@@ -236,13 +247,16 @@ async def stream(
             
             button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=config.SOUNCLOUD_IMG_URL,
-                caption=_["stream_1"].format(config.SUPPORT_CHAT, title[:23], duration_min, user_name),
-                has_spoiler=True
-            )
+            # 
+            theme = await get_player_style(chat_id)
+            caption_text = _[f"stream_{theme}"].format(config.SUPPORT_CHAT, title[:23], duration_min, user_name)
+            video_file = getattr(config, "PLAYER_VIDEO", None)
+            
+            if theme == 2 and video_file:
+                run = await app.send_video(original_chat_id, video=video_file, caption=caption_text, has_spoiler=True)
+            else:
+                run = await app.send_photo(original_chat_id, photo=config.SOUNCLOUD_IMG_URL, caption=caption_text, has_spoiler=True)
+                
             await inject_premium_markup(original_chat_id, run.id, button)
             
             db[chat_id][0]["mystic"] = run
@@ -274,13 +288,16 @@ async def stream(
                 
             button = stream_markup_timer(_, chat_id, "00:00", duration_min)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=config.TELEGRAM_VIDEO_URL if video else config.TELEGRAM_AUDIO_URL,
-                caption=_["stream_1"].format(link, title[:23], duration_min, user_name),
-                has_spoiler=True
-            )
+            # 
+            theme = await get_player_style(chat_id)
+            caption_text = _[f"stream_{theme}"].format(link, title[:23], duration_min, user_name)
+            video_file = getattr(config, "PLAYER_VIDEO", None)
+            
+            if theme == 2 and video_file:
+                run = await app.send_video(original_chat_id, video=video_file, caption=caption_text, has_spoiler=True)
+            else:
+                run = await app.send_photo(original_chat_id, photo=config.TELEGRAM_VIDEO_URL if video else config.TELEGRAM_AUDIO_URL, caption=caption_text, has_spoiler=True)
+                
             await inject_premium_markup(original_chat_id, run.id, button)
             
             db[chat_id][0]["mystic"] = run
@@ -315,13 +332,16 @@ async def stream(
             img = await get_thumb(vidid)
             button = stream_markup(_, chat_id)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=img,
-                caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name),
-                has_spoiler=True
-            )
+            # 
+            theme = await get_player_style(chat_id)
+            caption_text = _[f"livestream_{theme}"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name)
+            video_file = getattr(config, "PLAYER_VIDEO", None)
+            
+            if theme == 2 and video_file:
+                run = await app.send_video(original_chat_id, video=video_file, caption=caption_text, has_spoiler=True)
+            else:
+                run = await app.send_photo(original_chat_id, photo=img, caption=caption_text, has_spoiler=True)
+                
             await inject_premium_markup(original_chat_id, run.id, button)
             
             db[chat_id][0]["mystic"] = run
@@ -347,13 +367,16 @@ async def stream(
             
             button = stream_markup(_, chat_id)
             
-            # 🔥 HACK IN ACTION: Default Pyrogram + Premium API Buttons (Added Spoiler)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=config.STREAM_IMG_URL,
-                caption=_["stream_2"].format(user_name),
-                has_spoiler=True
-            )
+            # 
+            theme = await get_player_style(chat_id)
+            caption_text = _[f"stream_{theme}"].format(link, title[:23], duration_min, user_name)
+            video_file = getattr(config, "PLAYER_VIDEO", None)
+            
+            if theme == 2 and video_file:
+                run = await app.send_video(original_chat_id, video=video_file, caption=caption_text, has_spoiler=True)
+            else:
+                run = await app.send_photo(original_chat_id, photo=config.STREAM_IMG_URL, caption=caption_text, has_spoiler=True)
+                
             await inject_premium_markup(original_chat_id, run.id, button)
             
             db[chat_id][0]["mystic"] = run
