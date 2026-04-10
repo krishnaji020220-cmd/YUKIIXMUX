@@ -366,7 +366,7 @@ class Call(PyTgCalls):
             if not check:
                 # ==========================================
                 # ==========================================
-                # 🔥 AUTO PLAY LOGIC (THE MASTER FIX) 🔥
+                # AUTO PLAY LOGIC
                 # ==========================================
                 try:
                     from YUKIIMUSIC.utils.database import is_autoplay_on
@@ -377,36 +377,33 @@ class Call(PyTgCalls):
                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
                         prev_title = popped.get("title", "music")
                         
-                        msg = await app.send_message(chat_id, "🔍 `Autoplay: Loading next related track...`")
+                        msg = await app.send_message(chat_id, "Autoplay: Loading next related track...")
                         
-                        # 1. YouTube Slider se next gaana dhoondho
                         try:
                             _, _, _, next_vidid = await YouTube.slider(prev_title, 1)
                             track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
-                        except Exception as e:
+                        except Exception:
                             track_details, next_vidid = await YouTube.track(popped["vidid"], videoid=True)
                         
-                        # 2. Stream engine call (Bina 'client' ke)
+                        language = await get_lang(chat_id)
+                        theme_lang = get_string(language)
+                        
                         await stream(
-                             _=_,
-                            mystic=msg,
-                            user_id=app.id,
-                            result=track_details,
-                            chat_id=chat_id,
-                            user_name="Autoplay", 
-                            original_chat_id=chat_id,
+                            theme_lang,
+                            msg,
+                            app.id,
+                            track_details,
+                            chat_id,
+                            "Autoplay",
+                            chat_id,
                             video=False,
                             streamtype="youtube",
                             forceplay=False
                         )
                         return 
-                except Exception as e:
-                    try:
-                        await app.send_message(chat_id, f"🚨 **Autoplay Crash Report 4:**\n`{e}`")
-                    except:
-                        pass
-                        
-                        
+                except Exception:
+                    pass
+                    
                 # ==========================================
                 # NORMAL LEAVE LOGIC 
                 # ========================================== 
