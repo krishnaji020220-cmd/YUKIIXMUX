@@ -410,6 +410,13 @@ class Call(PyTgCalls):
                 
                 await _clear_(chat_id)
                 return await client.leave_group_call(chat_id)
+
+            except:
+            try:
+                await _clear_(chat_id)
+                return await client.leave_group_call(chat_id)
+            except:
+                return
                 
             try:
                 if popped and "mystic" in popped:
