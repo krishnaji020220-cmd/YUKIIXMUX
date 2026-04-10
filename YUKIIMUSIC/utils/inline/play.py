@@ -57,7 +57,7 @@ def track_markup(_, videoid, user_id, channel, fplay):
     ]
     return buttons
 
-def stream_markup_timer(_, chat_id, played, dur):
+def stream_markup_timer(_, chat_id, played, dur, autoplay_status=False):
     played_sec = time_to_seconds(played)
     duration_sec = time_to_seconds(dur)
     
@@ -81,6 +81,12 @@ def stream_markup_timer(_, chat_id, played, dur):
         else:
             bar += "─"
             
+    # Dynamic Autoplay Button
+    if autoplay_status:
+        autoplay_btn = api_btn(text="ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ", callback_data=f"Player_Autoplay_{chat_id}", style="success", custom_emoji_id="6294287714887933094")
+    else:
+        autoplay_btn = api_btn(text="ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ", callback_data=f"Player_Autoplay_{chat_id}", style="danger", custom_emoji_id="6294287714887933094")
+            
     buttons = [
         [
             # Full Premium Timer Bar! (Kyunki ab call.py isko support karta hai)
@@ -94,8 +100,8 @@ def stream_markup_timer(_, chat_id, played, dur):
             api_btn(text=" ", callback_data=f"ADMIN Stop|{chat_id}", custom_emoji_id="5409042015415448331"), 
         ],
         [
-            # Mimi Tunes & Home
-            api_btn(text="  ᴛᴜɴᴇs˼♪", url="http://nex0-1.vercel.app", style="success", custom_emoji_id="6294287714887933094"),
+            # Dynamic Autoplay & Home
+            autoplay_btn,
             api_btn(text="ʜᴏᴍᴇ", url=config.SUPPORT_CHAT, style="primary", custom_emoji_id="6291837599254322363"),
         ],
         [
@@ -105,7 +111,13 @@ def stream_markup_timer(_, chat_id, played, dur):
     ]
     return buttons
 
-def stream_markup(_, chat_id):
+def stream_markup(_, chat_id, autoplay_status=False):
+    # Dynamic Autoplay Button
+    if autoplay_status:
+        autoplay_btn = api_btn(text="ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ", callback_data=f"Player_Autoplay_{chat_id}", style="success", custom_emoji_id="6294118750874508525")
+    else:
+        autoplay_btn = api_btn(text="ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ", callback_data=f"Player_Autoplay_{chat_id}", style="danger", custom_emoji_id="6294118750874508525")
+
     buttons = [
         [
             # 4 Premium Emoji Buttons - NORMAL COLOR NOW
@@ -115,7 +127,8 @@ def stream_markup(_, chat_id):
             api_btn(text=" ", callback_data=f"ADMIN Stop|{chat_id}", custom_emoji_id="5409042015415448331"), 
         ],
         [
-            api_btn(text="˹  ᴛᴜɴᴇs˼♪", url="https://nex0-1.vercel.app", style="success", custom_emoji_id="6294118750874508525"),
+            # Dynamic Autoplay & Home
+            autoplay_btn,
             api_btn(text="ʜᴏᴍᴇ", url=config.SUPPORT_CHAT, style="primary", custom_emoji_id="6294287714887933094"),
         ],
         [
