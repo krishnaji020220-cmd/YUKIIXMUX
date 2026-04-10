@@ -56,9 +56,9 @@ PROMO =  "───────────────────────\
 
 GREET = ["💞", "🥂", "🔍", "🧪", "🥂", "⚡️", "🔥"]
 
-# 🔥 FIXED SAFETY HELPER: Now handles lists and objects properly
+# 
 def get_raw_markup(markup):
-    # Agar InlineKeyboardMarkup object hai, toh buttons nikaalo
+    # 
     keyboard = markup.inline_keyboard if hasattr(markup, 'inline_keyboard') else markup
     
     if isinstance(keyboard, list):
@@ -66,17 +66,17 @@ def get_raw_markup(markup):
         for row in keyboard:
             raw_row = []
             for btn in row:
-                # Agar already dictionary hai, toh waisa hi rakho
+                # 
                 if isinstance(btn, dict):
                     raw_row.append(btn)
                 else:
-                    # Pyrogram object ko dictionary mein convert karo raw API ke liye
+                    # 
                     raw_btn = {"text": btn.text}
                     if getattr(btn, "callback_data", None): 
                         raw_btn["callback_data"] = btn.callback_data
                     if getattr(btn, "url", None): 
                         raw_btn["url"] = btn.url
-                    # Hellfire Premium attributes carry forward
+                    # 
                     if hasattr(btn, "style"): 
                         raw_btn["style"] = btn.style
                     if hasattr(btn, "icon_custom_emoji_id"): 
@@ -86,7 +86,7 @@ def get_raw_markup(markup):
         return raw_kb
     return keyboard
 
-# 🔥 INJECT PREMIUM BUTTONS
+#
 async def inject_premium_markup(chat_id, message_id, markup):
     try:
         raw_markup = get_raw_markup(markup)
@@ -98,7 +98,7 @@ async def inject_premium_markup(chat_id, message_id, markup):
     except:
         pass
 
-# 🔥 THE MAGIC START FUNCTION: Improved Fallback
+# 
 async def send_magic_start(chat_id, photo_url, caption, markup, reply_to_id=None):
     raw_markup = get_raw_markup(markup)
     try:
