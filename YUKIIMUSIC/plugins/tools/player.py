@@ -32,6 +32,9 @@ from YUKIIMUSIC.misc import SUDOERS, mongodb
 from YUKIIMUSIC.utils.decorators.language import language, languageCB
 from config import BANNED_USERS
 
+# 🔥 AUTOPLAY DATABASE IMPORTS
+from YUKIIMUSIC.utils.database import autoplay_on, autoplay_off, is_autoplay_on
+
 # 🔥 PLAYER DATABASE SETUP
 playerdb = mongodb.player_settings
 
@@ -78,10 +81,11 @@ async def set_music_on(chat_id, is_on: bool):
     await playerdb.update_one({"chat_id": chat_id}, {"$set": {"music_on": is_on}}, upsert=True)
 
 
-# 🔥 KEYBOARD GENERATOR (UPDATED WITH MUSIC TOGGLE)
-def player_markup(style: int, is_on: bool, is_music: bool, target_id):
+# 🔥 KEYBOARD GENERATOR (UPDATED WITH AUTOPLAY TOGGLE)
+def player_markup(style: int, is_on: bool, is_music: bool, is_autoplay: bool, target_id):
     status = "✅ ᴏɴ" if is_on else "❌ ᴏғғ"
     music_status = "✅ ᴏɴ" if is_music else "❌ ᴏғғ"
+    autoplay_status = "✅ ᴏɴ" if is_autoplay else "❌ ᴏғғ"
     return InlineKeyboardMarkup(
         [
             [
@@ -97,6 +101,9 @@ def player_markup(style: int, is_on: bool, is_music: bool, target_id):
             ],
             [
                 InlineKeyboardButton(f"ᴍᴜsɪᴄ sᴛᴀᴛᴜs : {music_status}", callback_data=f"toggle_music_{target_id}"),
+            ],
+            [
+                InlineKeyboardButton(f"ᴀᴜᴛᴏᴘʟᴀʏ sᴛᴀᴛᴜs : {autoplay_status}", callback_data=f"toggle_autoplay_{target_id}"),
             ],
             [
                 InlineKeyboardButton("🗑 ᴄʟᴏsᴇ", callback_data="close_player_panel"),
@@ -178,6 +185,7 @@ async def player_command(client, message: Message, _):
     style = await get_player_style(target_id)
     is_on = await is_player_on(target_id)
     is_music = await is_music_on(target_id)
+    is_autoplay = await is_autoplay_on(target_id)
     img = get_digan_image(style)
     
     panel_type = "ɢʟᴏʙᴀʟ" if target_id == "GLOBAL" else "ɢʀᴏᴜᴘ"
@@ -193,12 +201,12 @@ async def player_command(client, message: Message, _):
     await message.reply_photo(
         photo=img,
         caption=caption,
-        reply_markup=player_markup(style, is_on, is_music, target_id)
+        reply_markup=player_markup(style, is_on, is_music, is_autoplay, target_id)
     )
 
 
 # 🔥 CALLBACK HANDLERS
-@app.on_callback_query(filters.regex(r"^(set_player_|toggle_player_|toggle_music_)") & ~BANNED_USERS)
+@app.on_callback_query(filters.regex(r"^(set_player_|toggle_player_|toggle_music_|toggle_autoplay_)") & ~BANNED_USERS)
 async def player_callbacks(client, CallbackQuery: CallbackQuery):
     data = CallbackQuery.data.split("_")
     action = data[0]
@@ -208,7 +216,7 @@ async def player_callbacks(client, CallbackQuery: CallbackQuery):
         new_style = int(data[2])
         target_id = data[3]
     else: # toggle
-        sub_action = data[1] # 'player' or 'music'
+        sub_action = data[1] # 'player', 'music' or 'autoplay'
         target_id = data[2]
 
     if target_id != "GLOBAL":
@@ -228,6 +236,7 @@ async def player_callbacks(client, CallbackQuery: CallbackQuery):
     current_style = await get_player_style(target_id)
     is_on = await is_player_on(target_id)
     is_music = await is_music_on(target_id)
+    is_autoplay = await is_autoplay_on(target_id)
     panel_type = "ɢʟᴏʙᴀʟ" if target_id == "GLOBAL" else "ɢʀᴏᴜᴘ"
 
     if action == "set":
@@ -239,7 +248,6 @@ async def player_callbacks(client, CallbackQuery: CallbackQuery):
         
         img = get_digan_image(new_style)
         
-        # 🔥 UPDATED CAPTION WITH BLOCKQUOTE
         caption = (
             f"<blockquote><b>✨ {panel_type} ᴘʟᴀʏᴇʀ sᴇᴛᴛɪɴɢs ✨</b>\n\n"
             "ғʀᴏᴍ ʜᴇʀᴇ ʏᴏᴜ ᴄᴀɴ ᴄʜᴀɴɢᴇ ᴛʜᴇ ᴍᴜsɪᴄ ᴘʟᴀʏᴇʀ ᴅᴇsɪɢɴ. "
@@ -249,7 +257,7 @@ async def player_callbacks(client, CallbackQuery: CallbackQuery):
         
         med = InputMediaPhoto(media=img, caption=caption)
         try:
-            await CallbackQuery.edit_message_media(media=med, reply_markup=player_markup(new_style, is_on, is_music, target_id))
+            await CallbackQuery.edit_message_media(media=med, reply_markup=player_markup(new_style, is_on, is_music, is_autoplay, target_id))
         except MessageIdInvalid:
             pass
 
@@ -257,24 +265,34 @@ async def player_callbacks(client, CallbackQuery: CallbackQuery):
         if sub_action == "player":
             new_status = not is_on
             await set_player_on(target_id, new_status)
-            
             status_text = "ᴏɴ ✅" if new_status else "ᴏғғ ❌"
             await CallbackQuery.answer(f"✅ {panel_type} ᴘʟᴀʏᴇʀ sᴛᴀᴛᴜs ɪs ɴᴏᴡ {status_text}!")
-            
             try:
-                await CallbackQuery.edit_message_reply_markup(reply_markup=player_markup(current_style, new_status, is_music, target_id))
+                await CallbackQuery.edit_message_reply_markup(reply_markup=player_markup(current_style, new_status, is_music, is_autoplay, target_id))
             except MessageIdInvalid:
                 pass
                 
         elif sub_action == "music":
             new_music_status = not is_music
             await set_music_on(target_id, new_music_status)
-            
             status_text = "ᴏɴ ✅" if new_music_status else "ᴏғғ ❌"
             await CallbackQuery.answer(f"✅ {panel_type} ᴍᴜsɪᴄ sᴛᴀᴛᴜs ɪs ɴᴏᴡ {status_text}!")
-            
             try:
-                await CallbackQuery.edit_message_reply_markup(reply_markup=player_markup(current_style, is_on, new_music_status, target_id))
+                await CallbackQuery.edit_message_reply_markup(reply_markup=player_markup(current_style, is_on, new_music_status, is_autoplay, target_id))
+            except MessageIdInvalid:
+                pass
+                
+        elif sub_action == "autoplay":
+            new_autoplay_status = not is_autoplay
+            if new_autoplay_status:
+                await autoplay_on(target_id)
+            else:
+                await autoplay_off(target_id)
+            
+            status_text = "ᴏɴ ✅" if new_autoplay_status else "ᴏғғ ❌"
+            await CallbackQuery.answer(f"✅ {panel_type} ᴀᴜᴛᴏᴘʟᴀʏ sᴛᴀᴛᴜs ɪs ɴᴏᴡ {status_text}!")
+            try:
+                await CallbackQuery.edit_message_reply_markup(reply_markup=player_markup(current_style, is_on, is_music, new_autoplay_status, target_id))
             except MessageIdInvalid:
                 pass
 
@@ -289,4 +307,4 @@ async def close_player_cb(client, CallbackQuery: CallbackQuery):
         await CallbackQuery.message.delete()
     except:
         pass
-                                               
+    
