@@ -366,51 +366,49 @@ class Call(PyTgCalls):
             if not check:
                 # ==========================================
                 # ==========================================
-                # 🔥 AUTO PLAY LOGIC (FINAL FIX) 🔥
+                # 🔥 AUTO PLAY LOGIC (THE MASTER FIX) 🔥
                 # ==========================================
                 try:
-                    from YUKIIMUSIC.utils.database import is_autoplay_on, get_lang
+                    from YUKIIMUSIC.utils.database import is_autoplay_on
                     from YUKIIMUSIC.utils.stream.stream import stream
-                    from strings import get_string
-                    from YUKIIMUSIC import YouTube
                     
                     auto_play = await is_autoplay_on(chat_id)
                     
                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
-                        prev_title = popped.get("title", "")
+                        prev_title = popped.get("title", "music")
                         
                         msg = await app.send_message(chat_id, "🔍 `Autoplay: Loading next related track...`")
                         
-                        # 1. Agla gaana dhoondho (YouTube se 2nd result nikal rahe hain)
+                        # 1. YouTube Slider se next gaana dhoondho
                         try:
                             _, _, _, next_vidid = await YouTube.slider(prev_title, 1)
-                        except:
-                            next_vidid = popped["vidid"] # Agar fail hua toh same play kar dega
-                            
-                        # 2. Language Setup (Taaki stream engine error na de)
-                        language = await get_lang(chat_id)
-                        _ = get_string(language)
+                            # stream() ko result dictionary chahiye hoti hai, wahi nikal rahe hain
+                            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+                        except Exception as e:
+                            # Agar fail hua toh safety ke liye wahi purana play kar dega
+                            track_details, next_vidid = await YouTube.track(popped["vidid"], videoid=True)
                         
-                        # 3. Makkhan Stream Engine (Bina kisi faltu keyword ke)
+                        # 2. Stream engine call with EXACT keywords
                         await stream(
-                            client,
-                            msg,
-                            _,
-                            "video",
-                            chat_id,
-                            next_vidid, 
+                            client=app,
+                            mystic=msg,
+                            user_id=app.id,
+                            result=track_details,
+                            chat_id=chat_id,
+                            user_name="Autoplay", # Ye 'Requested by: Autoplay' dikhayega!
+                            original_chat_id=chat_id,
                             video=False,
                             streamtype="youtube",
                             forceplay=False
                         )
                         return 
                 except Exception as e:
-                    # Tracker abhi bhi on rakha hai safety ke liye
+                    # Tracker abhi bhi on hai safety ke liye
                     try:
-                        await app.send_message(chat_id, f"🚨 **Autoplay Crash Report 2:**\n`{e}`")
+                        await app.send_message(chat_id, f"🚨 **Autoplay Crash Report 3:**\n`{e}`")
                     except:
                         pass
-                       
+                        
                 # ==========================================
                 # NORMAL LEAVE LOGIC 
                 # ========================================== 
