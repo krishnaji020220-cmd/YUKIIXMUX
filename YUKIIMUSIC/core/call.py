@@ -363,10 +363,39 @@ class Call(PyTgCalls):
                 await set_loop(chat_id, loop)
             await auto_clean(popped)
             
-            # ==========================================
-            # 櫨 MUSIC ENDED - PLAYER EDIT LOGIC 櫨
-            # ==========================================
             if not check:
+                # ==========================================
+                # 🔥 AUTO PLAY LOGIC (WORKING ENGINE) 🔥
+                # ==========================================
+                try:
+                    from YUKIIMUSIC.utils.database import is_autoplay_on
+                    from YUKIIMUSIC.utils.stream.stream import stream
+                    
+                    auto_play = await is_autoplay_on(chat_id)
+                    
+                    if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
+                        prev_vidid = popped["vidid"]
+                        
+                        # Ye asli streaming function hai jo us AI ne miss kar diya tha
+                        await stream(
+                            client,
+                            app.username,
+                            app.id,
+                            "video", 
+                            chat_id,
+                            prev_vidid, 
+                            video=False,
+                            streamtype="youtube",
+                            forceplay=False,
+                            autoplay=True, # 🔥 Yahi automatically related gaana bajayega
+                        )
+                        return 
+                except Exception as e:
+                    pass
+
+                # ==========================================
+                # NORMAL LEAVE LOGIC (Agar Autoplay OFF ho)
+                # ==========================================
                 try:
                     if popped and "mystic" in popped:
                         language = await get_lang(chat_id)
@@ -381,10 +410,7 @@ class Call(PyTgCalls):
                 
                 await _clear_(chat_id)
                 return await client.leave_group_call(chat_id)
-        except:
-            # ==========================================
-            # 櫨 SAFETY FALLBACK LOGIC 櫨
-            # ==========================================
+                
             try:
                 if popped and "mystic" in popped:
                     language = await get_lang(chat_id)
