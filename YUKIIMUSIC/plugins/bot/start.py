@@ -6,18 +6,6 @@
 # This code is the intellectual SUDEEPBOTS.
 # You are not allowed to copy, modify, redistribute, or use this
 # code for commercial or personal projects without explicit permission.
-#
-# Allowed:
-# - Forking for personal learning
-# - Submitting improvements via pull requests
-#
-# Not Allowed:
-# - Claiming this code as your own
-# - Re-uploading without credit or permission
-# - Selling or using commercially
-#
-# Contact for permissions:
-# Email: sudeepgithub@gmail.com
 
 import YUKIIMUSIC.yuki_guard
 import os
@@ -68,36 +56,51 @@ PROMO =  "───────────────────────\
 
 GREET = ["💞", "🥂", "🔍", "🧪", "🥂", "⚡️", "🔥"]
 
-# 🔥 SAFETY HELPER
+# 🔥 FIXED SAFETY HELPER: Now handles lists and objects properly
 def get_raw_markup(markup):
-    if hasattr(markup, 'inline_keyboard'):
+    # Agar InlineKeyboardMarkup object hai, toh buttons nikaalo
+    keyboard = markup.inline_keyboard if hasattr(markup, 'inline_keyboard') else markup
+    
+    if isinstance(keyboard, list):
         raw_kb = []
-        for row in markup.inline_keyboard:
+        for row in keyboard:
             raw_row = []
             for btn in row:
-                raw_btn = {"text": btn.text}
-                if btn.callback_data: raw_btn["callback_data"] = btn.callback_data
-                if btn.url: raw_btn["url"] = btn.url
-                raw_row.append(raw_btn)
+                # Agar already dictionary hai, toh waisa hi rakho
+                if isinstance(btn, dict):
+                    raw_row.append(btn)
+                else:
+                    # Pyrogram object ko dictionary mein convert karo raw API ke liye
+                    raw_btn = {"text": btn.text}
+                    if getattr(btn, "callback_data", None): 
+                        raw_btn["callback_data"] = btn.callback_data
+                    if getattr(btn, "url", None): 
+                        raw_btn["url"] = btn.url
+                    # Hellfire Premium attributes carry forward
+                    if hasattr(btn, "style"): 
+                        raw_btn["style"] = btn.style
+                    if hasattr(btn, "icon_custom_emoji_id"): 
+                        raw_btn["icon_custom_emoji_id"] = str(btn.icon_custom_emoji_id)
+                    raw_row.append(raw_btn)
             raw_kb.append(raw_row)
         return raw_kb
-    return markup
+    return keyboard
 
 # 🔥 INJECT PREMIUM BUTTONS
 async def inject_premium_markup(chat_id, message_id, markup):
     try:
-        markup = get_raw_markup(markup)
+        raw_markup = get_raw_markup(markup)
         token = getattr(config, "BOT_TOKEN", getattr(app, "bot_token", None))
         url = f"https://api.telegram.org/bot{token}/editMessageReplyMarkup"
-        payload = {"chat_id": chat_id, "message_id": message_id, "reply_markup": {"inline_keyboard": markup}}
+        payload = {"chat_id": chat_id, "message_id": message_id, "reply_markup": {"inline_keyboard": raw_markup}}
         async with aiohttp.ClientSession() as session:
             await session.post(url, json=payload)
-    except Exception as e:
+    except:
         pass
 
-# 🔥 THE MAGIC START FUNCTION
+# 🔥 THE MAGIC START FUNCTION: Improved Fallback
 async def send_magic_start(chat_id, photo_url, caption, markup, reply_to_id=None):
-    markup = get_raw_markup(markup)
+    raw_markup = get_raw_markup(markup)
     try:
         token = getattr(config, "BOT_TOKEN", getattr(app, "bot_token", None))
         url = f"https://api.telegram.org/bot{token}/sendPhoto"
@@ -109,7 +112,7 @@ async def send_magic_start(chat_id, photo_url, caption, markup, reply_to_id=None
             "parse_mode": "HTML",
             "has_spoiler": True,  
             "message_effect_id": "5159385139981059251", # ❤️ Hearts Animation
-            "reply_markup": {"inline_keyboard": markup}
+            "reply_markup": {"inline_keyboard": raw_markup}
         }
         if reply_to_id:
             payload["reply_to_message_id"] = reply_to_id
@@ -119,11 +122,14 @@ async def send_magic_start(chat_id, photo_url, caption, markup, reply_to_id=None
                 res = await resp.json()
                 
                 if not res.get("ok"):
-                    run = await app.send_photo(chat_id, photo=photo_url, caption=caption, has_spoiler=True) 
+                    # Fallback with buttons!
+                    actual_markup = InlineKeyboardMarkup(markup) if isinstance(markup, list) else markup
+                    run = await app.send_photo(chat_id, photo=photo_url, caption=caption, has_spoiler=True, reply_markup=actual_markup) 
                     await inject_premium_markup(chat_id, run.id, markup)
                     
     except Exception as e:
-        run = await app.send_photo(chat_id, photo=photo_url, caption=caption, has_spoiler=True)
+        actual_markup = InlineKeyboardMarkup(markup) if isinstance(markup, list) else markup
+        run = await app.send_photo(chat_id, photo=photo_url, caption=caption, has_spoiler=True, reply_markup=actual_markup)
         await inject_premium_markup(chat_id, run.id, markup)
 
 
@@ -160,7 +166,7 @@ async def start_pm(client, message: Message, _):
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
         
-        # 🔥 CLAIMX REWARD HANDLER (DM ECO LOGIC)
+        # CLAIMX REWARD HANDLER
         if name == "claimx":
             user_id = message.from_user.id
             user_data = await game_db.find_one({"user_id": user_id})
@@ -191,14 +197,12 @@ async def start_pm(client, message: Message, _):
                 
             await client.send_message(message.chat.id, claim_text)
             
-            # Show normal start panel after claim status
             out = private_panel(_)
             UP, CPU, RAM, DISK = await bot_sys_stats()
             served_chats, served_users = len(await get_served_chats()), len(await get_served_users())
             caption_text = _["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM, served_users, served_chats)
             return await send_magic_start(message.chat.id, random.choice(YUMI_PICS), caption_text, out)
 
-        # --- NORMAL CLAIM REWARD ---
         elif name.startswith("claim"):
             claim_text = "🎉 **Welcome to the DM!**\n\n<emoji id='6334471179801200139'>🎉</emoji> You've successfully connected. Your mini-game profile is active and your points are safe!"
             await client.send_message(message.chat.id, claim_text)
@@ -209,7 +213,6 @@ async def start_pm(client, message: Message, _):
             caption_text = _["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM, served_users, served_chats)
             return await send_magic_start(message.chat.id, random.choice(YUMI_PICS), caption_text, out)
 
-        # --- HELP COMMAND ---
         if name[0:4] == "help":
             keyboard = help_pannel(_, True) 
             return await send_magic_start(
@@ -219,7 +222,6 @@ async def start_pm(client, message: Message, _):
                 markup=keyboard
             )
             
-        # --- SUDO LIST ---
         if name[0:3] == "sud":
             await sudoers_list(client=client, message=message, _=_)
             if await is_on_off(2):
@@ -229,7 +231,6 @@ async def start_pm(client, message: Message, _):
                 )
             return
             
-        # --- INFO COMMAND ---
         if name[0:3] == "inf":
             m = await message.reply_text("🔎")
             query = (str(name)).replace("info_", "", 1)
@@ -306,7 +307,7 @@ async def welcome(client, message: Message):
                     return await app.leave_chat(message.chat.id)
 
                 out = start_panel(_)
-                bot_welcome = f"<emoji id='6080202089311507876'>😎</emoji> <b>𝖶𝖾𝗅𝖼𝗈𝗆𝖾 𝖳𝗈 {message.chat.title}</b>\n<emoji id='6001132493011425597'>💖</emoji> 𝖳𝗁𝖺𝗇𝗄𝗌 𝖿𝗈𝗋 𝖺𝖽𝖽𝗂𝗇𝗀 𝗆𝖾, 𝖨 𝖺𝗆 𝗋𝖾𝖺𝖽𝗒 𝗍𝗈 𝗉𝗅𝖺𝗒!"
+                bot_welcome = f"<emoji id='6080202089311507876'>😎</emoji> <b>𝖶𝖾𝗅𝖼𝗈𝗆𝖾 𝖳𝗈 {message.chat.title}</b>\n<emoji id='6001132493011425597'>💖</emoji> 𝖳𝗁𝖺𝗇𝗄𝗌 𝖿ᴏʀ 𝖺𝖽𝖽𝗂𝗇𝗀 𝗆𝖾, 𝖨 𝖺𝗆 𝗋𝖾𝖺𝖽𝗒 𝗍𝗈 𝗉𝗅𝖺𝗒!"
                 
                 run = await message.reply_text(text=bot_welcome)
                 await inject_premium_markup(message.chat.id, run.id, out)
@@ -321,7 +322,7 @@ async def welcome(client, message: Message):
                 
                 await message.stop_propagation()
             else:
-                user_welcome = f"<emoji id='5413840936994097463'>🌺</emoji> <b>𝖶𝖾𝗅𝖼𝗈𝗆𝖾 𝖳𝗈 {message.chat.title}, {member.mention}!</b>"
+                user_welcome = f"<emoji id='5413840936994097463'>🌺</emoji> <b>𝖶𝖾𝗅𝖼ᴏᴍᴇ 𝖳ᴏ {message.chat.title}, {member.mention}!</b>"
                 run = await message.reply_text(text=user_welcome)
                 
                 async def delete_user_msg():
@@ -332,4 +333,4 @@ async def welcome(client, message: Message):
 
         except Exception as ex:
             pass
-        
+    
