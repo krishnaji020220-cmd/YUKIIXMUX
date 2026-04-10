@@ -366,28 +366,35 @@ class Call(PyTgCalls):
             if not check:
                 # ==========================================
                 # ==========================================
-                # AUTO PLAY LOGIC
+                # AUTO PLAY LOGIC (WITH FILTER)
                 # ==========================================
                 try:
                     from YUKIIMUSIC.utils.database import is_autoplay_on, get_lang
                     from YUKIIMUSIC.utils.stream.stream import stream
                     from strings import get_string
+                    import random
                     
                     auto_play = await is_autoplay_on(chat_id)
                     
                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
                         prev_title = popped.get("title", "music")
                         
-                        # Language setup pehle call kar liya
                         language = await get_lang(chat_id)
                         theme_lang = get_string(language)
                         
-                        # en.yml se play_1 string utha li, stream isko apne aap delete kar dega
                         msg = await app.send_message(chat_id, theme_lang["play_1"])
                         
+                        # BANDA KHADA KAR DIYA (Filter Logic)
+                        next_vidid = popped["vidid"]
                         try:
-                            # Index 2 use kiya taaki same gaane ka lyric video na uthaye
-                            _, _, _, next_vidid = await YouTube.slider(prev_title, 2)
+                            for _ in range(3):
+                                rand_index = random.randint(2, 8)
+                                _, _, _, check_vidid = await YouTube.slider(prev_title, rand_index)
+                                
+                                if check_vidid != popped["vidid"]:
+                                    next_vidid = check_vidid
+                                    break 
+                                    
                             track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
                         except Exception:
                             track_details, next_vidid = await YouTube.track(popped["vidid"], videoid=True)
@@ -404,6 +411,13 @@ class Call(PyTgCalls):
                             streamtype="youtube",
                             forceplay=False
                         )
+                        
+                        # Message ko delete karne ka order
+                        try:
+                            await msg.delete()
+                        except Exception:
+                            pass
+                            
                         return 
                 except Exception:
                     pass
