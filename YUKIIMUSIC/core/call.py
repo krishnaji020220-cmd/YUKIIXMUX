@@ -365,7 +365,7 @@ class Call(PyTgCalls):
             
             if not check:
                 # ==========================================
-                # AUTO PLAY LOGIC (WORKING ENGINE)
+                # AUTO PLAY LOGIC (TRACKER ENGINE)
                 # ==========================================
                 try:
                     from YUKIIMUSIC.utils.database import is_autoplay_on
@@ -376,9 +376,12 @@ class Call(PyTgCalls):
                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
                         prev_vidid = popped["vidid"]
                         
+                        # Ye bot ko group mein bolne pe majboor karega
+                        msg = await app.send_message(chat_id, "🔍 `Autoplay: Searching for a related track...`")
+                        
                         await stream(
                             client,
-                            app.username,
+                            msg, # Asli bimari is argument mein ho sakti hai
                             app.id,
                             "video", 
                             chat_id,
@@ -390,7 +393,11 @@ class Call(PyTgCalls):
                         )
                         return 
                 except Exception as e:
-                    pass
+                    # 🚨 CHOR YAHAN PAKDA JAYEGA 🚨
+                    try:
+                        await app.send_message(chat_id, f"🚨 **Autoplay Crash Report:**\n`{e}`\n\nSudeep bhai isko solve karo!")
+                    except:
+                        pass
 
                 # ==========================================
                 # NORMAL LEAVE LOGIC 
