@@ -64,6 +64,70 @@ from strings import get_string
 autoend = {}
 counter = {}
 
+# 🔥 DUMMY CLASS FOR SILENT DOWNLOADS 🔥
+# Ye bot ko error dene se rokega jab Autoplay chupke se download karega
+class DummyMystic:
+    async def edit_text(self, *args, **kwargs): pass
+    async def delete(self, *args, **kwargs): pass
+    async def edit_caption(self, *args, **kwargs): pass
+
+# 🔥 BACKGROUND PRE-FETCHER ENGINE 🔥
+async def auto_prefetch(chat_id, current_song):
+    try:
+        from YUKIIMUSIC.utils.database import is_autoplay_on
+        if not await is_autoplay_on(chat_id):
+            return
+        
+        # Agar queue me pehle se gaane hain, toh pre-fetch ki zaroorat nahi
+        if len(db.get(chat_id, [])) > 1:
+            return
+
+        # Gaana play hone ke 5 second baad background task shuru hoga taaki server lag na kare
+        await asyncio.sleep(5) 
+        
+        if len(db.get(chat_id, [])) > 1 or not await is_autoplay_on(chat_id):
+            return
+            
+        from YUKIIMUSIC import YouTube
+        
+        prev_title = current_song.get("title", "music")
+        clean_title = prev_title.split("|")[0].split("(")[0].strip()
+        search_query = f"{clean_title} audio"
+        
+        try:
+            rand_index = random.randint(1, 4)
+            _, _, _, next_vidid = await YouTube.slider(search_query, rand_index)
+            if not next_vidid or next_vidid == current_song["vidid"]:
+                _, _, _, next_vidid = await YouTube.slider(search_query, 5)
+            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+        except Exception:
+            fallback_queries = ["trending english hits", "lofi chill tracks"]
+            _, _, _, check_vidid = await YouTube.slider(random.choice(fallback_queries), 1)
+            next_vidid = check_vidid if check_vidid else current_song["vidid"]
+            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+
+        dummy_msg = DummyMystic()
+        try:
+            # Chup chap background me download karke Local File Path le lega!
+            file_path, _ = await YouTube.download(next_vidid, dummy_msg, videoid=True, video=False)
+        except Exception:
+            file_path = f"vid_{next_vidid}"
+
+        # Ekdum end me queue me chupke se add kar do
+        if len(db.get(chat_id, [])) == 1: 
+            db[chat_id].append({
+                "vidid": next_vidid,
+                "title": track_details["title"],
+                "by": "Autoplay [Bot]",
+                "chat_id": chat_id,
+                "dur": track_details["duration_min"],
+                "seconds": track_details["duration_sec"],
+                "file": file_path, 
+                "streamtype": "audio",
+            })
+    except Exception:
+        pass
+
 
 async def _clear_(chat_id):
     db[chat_id] = []
@@ -364,78 +428,54 @@ class Call(PyTgCalls):
                 await set_loop(chat_id, loop)
             await auto_clean(popped)
             
+            # ==========================================
+            # 🛑 NORMAL LEAVE LOGIC (Agar Autoplay OFF ho aur Queue khali ho)
+            # ==========================================
             if not check:
-                # ==========================================
-                # 🔥 THE ULTIMATE AUTOPLAY ENGINE 🔥
-                # ==========================================
-                try:
-                    from YUKIIMUSIC.utils.database import is_autoplay_on
-                    
-                    auto_play = await is_autoplay_on(chat_id)
-                    
-                    if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
+                # Agar hum yahan pahunche hain matalb Pre-fetch task nahi chala tha
+                # Ya fir Autoplay OFF tha
+                from YUKIIMUSIC.utils.database import is_autoplay_on
+                auto_play = await is_autoplay_on(chat_id)
+                
+                # As a last fallback (agar prefetch fail hua ho)
+                if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
+                    try:
+                        from YUKIIMUSIC.utils.stream.stream import stream
+                        from strings import get_string
+                        language = await get_lang(chat_id)
+                        _ = get_string(language)
                         try:
-                            msg = await app.send_message(chat_id, "🔍 `Autoplay: Loading next vibe...`")
+                            msg = await app.send_message(chat_id, _["play_1"])
                         except:
                             msg = None
-
-                        prev_title = popped.get("title", "music")
-                        clean_title = prev_title.split("|")[0].split("(")[0].strip()
-                        search_query = f"{clean_title} audio"
-                        
-                        try:
-                            rand_index = random.randint(1, 3)
-                            _, _, _, next_vidid = await YouTube.slider(search_query, rand_index)
-                            if not next_vidid or next_vidid == popped["vidid"]:
-                                next_vidid = popped["vidid"]
-                                
-                            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
-                        except Exception:
-                            fallback_queries = ["trending english hits", "lofi chill tracks", "latest aesthetic songs"]
-                            _, _, _, check_vidid = await YouTube.slider(random.choice(fallback_queries), 1)
-                            next_vidid = check_vidid if check_vidid else popped["vidid"]
-                            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
-
-                        # QUEUE me naya gaana daal diya bina kisi error ke
-                        check.append({
-                            "vidid": next_vidid,
-                            "title": track_details["title"],
-                            "by": "Autoplay",
-                            "chat_id": chat_id,
-                            "dur": track_details["duration_min"],
-                            "seconds": track_details["duration_sec"],
-                            "file": f"vid_{next_vidid}", 
-                            "streamtype": "audio",
-                        })
-                        
-                        if msg:
-                            try:
-                                await msg.delete()
-                            except:
-                                pass
-                except Exception:
-                    pass
-
-                # ==========================================
-                # 🛑 NORMAL LEAVE LOGIC (Agar queue khali bachi)
-                # ==========================================
-                if not check:
-                    try:
-                        if popped and "mystic" in popped:
-                            language = await get_lang(chat_id)
-                            _ = get_string(language)
-                            end_msg = _["MUSIC_ENDED"]
-                            try:
-                                await popped["mystic"].edit_caption(caption=end_msg, reply_markup=music_end_markup(_))
-                            except:
-                                await popped["mystic"].edit_text(text=end_msg, disable_web_page_preview=True, reply_markup=music_end_markup(_))
+                            
+                        asyncio.create_task(
+                            stream(
+                                _, msg, app.id, 
+                                {"title": popped.get("title", "music"), "duration_min": popped.get("dur", "0:00"), "duration_sec": popped.get("seconds", 0)}, 
+                                chat_id, "Autoplay [Bot]", chat_id, video=False, streamtype="youtube", forceplay=False, autoplay=True
+                            )
+                        )
+                        return
                     except Exception:
                         pass
-                    
-                    await _clear_(chat_id)
-                    return await client.leave_group_call(chat_id)
-
-        except Exception as e:
+                
+                # Sachi me VC Leave karne ka time
+                try:
+                    if popped and "mystic" in popped:
+                        language = await get_lang(chat_id)
+                        _ = get_string(language)
+                        end_msg = _["MUSIC_ENDED"]
+                        try:
+                            await popped["mystic"].edit_caption(caption=end_msg, reply_markup=music_end_markup(_))
+                        except:
+                            await popped["mystic"].edit_text(text=end_msg, disable_web_page_preview=True, reply_markup=music_end_markup(_))
+                except Exception:
+                    pass
+                
+                await _clear_(chat_id)
+                return await client.leave_group_call(chat_id)
+        except:
             # ==========================================
             # 🛑 SAFETY FALLBACK LOGIC
             # ==========================================
@@ -457,9 +497,6 @@ class Call(PyTgCalls):
             except:
                 return
         else:
-            # ==========================================
-            # 🎵 PLAY NEXT SONG (Normal Queue + Autoplay yahi trigger hota hai)
-            # ==========================================
             queued = check[0]["file"]
             language = await get_lang(chat_id)
             _ = get_string(language)
@@ -476,148 +513,84 @@ class Call(PyTgCalls):
                 db[chat_id][0]["speed_path"] = None
                 db[chat_id][0]["speed"] = 1.0
             video = True if str(streamtype) == "video" else False
+            
             if "live_" in queued:
                 n, link = await YouTube.video(videoid, True)
                 if n == 0:
-                    return await app.send_message(
-                        original_chat_id,
-                        text=_["call_6"],
-                    )
+                    return await app.send_message(original_chat_id, text=_["call_6"])
                 if video:
-                    stream = AudioVideoPiped(
-                        link,
-                        audio_parameters=HighQualityAudio(),
-                        video_parameters=MediumQualityVideo(),
-                    )
+                    stream = AudioVideoPiped(link, audio_parameters=HighQualityAudio(), video_parameters=MediumQualityVideo())
                 else:
-                    stream = AudioPiped(
-                        link,
-                        audio_parameters=HighQualityAudio(),
-                    )
+                    stream = AudioPiped(link, audio_parameters=HighQualityAudio())
                 try:
                     await client.change_stream(chat_id, stream)
                 except Exception:
-                    return await app.send_message(
-                        original_chat_id,
-                        text=_["call_6"],
-                    )
+                    return await app.send_message(original_chat_id, text=_["call_6"])
                 img = await get_thumb(videoid)
                 button = stream_markup(_, chat_id)
                 run = await app.send_photo(
                     chat_id=original_chat_id,
                     photo=img,
-                    caption=_["stream_1"].format(
-                        f"https://t.me/{app.username}?start=info_{videoid}",
-                        title[:23],
-                        check[0]["dur"],
-                        user,
-                    ),
+                    caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{videoid}", title[:23], check[0]["dur"], user),
                     reply_markup=InlineKeyboardMarkup(button),
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
+                
             elif "vid_" in queued:
                 mystic = await app.send_message(original_chat_id, _["call_7"])
                 try:
-                    file_path, direct = await YouTube.download(
-                        videoid,
-                        mystic,
-                        videoid=True,
-                        video=True if str(streamtype) == "video" else False,
-                    )
+                    file_path, direct = await YouTube.download(videoid, mystic, videoid=True, video=True if str(streamtype) == "video" else False)
                 except:
-                    return await mystic.edit_text(
-                        _["call_6"], disable_web_page_preview=True
-                    )
+                    return await mystic.edit_text(_["call_6"], disable_web_page_preview=True)
                 if video:
-                    stream = AudioVideoPiped(
-                        file_path,
-                        audio_parameters=HighQualityAudio(),
-                        video_parameters=MediumQualityVideo(),
-                    )
+                    stream = AudioVideoPiped(file_path, audio_parameters=HighQualityAudio(), video_parameters=MediumQualityVideo())
                 else:
-                    stream = AudioPiped(
-                        file_path,
-                        audio_parameters=HighQualityAudio(),
-                    )
+                    stream = AudioPiped(file_path, audio_parameters=HighQualityAudio())
                 try:
                     await client.change_stream(chat_id, stream)
                 except:
-                    return await app.send_message(
-                        original_chat_id,
-                        text=_["call_6"],
-                    )
+                    return await app.send_message(original_chat_id, text=_["call_6"])
                 img = await get_thumb(videoid)
                 button = stream_markup(_, chat_id)
                 await mystic.delete()
                 run = await app.send_photo(
                     chat_id=original_chat_id,
                     photo=img,
-                    caption=_["stream_1"].format(
-                        f"https://t.me/{app.username}?start=info_{videoid}",
-                        title[:23],
-                        check[0]["dur"],
-                        user,
-                    ),
+                    caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{videoid}", title[:23], check[0]["dur"], user),
                     reply_markup=InlineKeyboardMarkup(button),
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
+                
             elif "index_" in queued:
-                stream = (
-                    AudioVideoPiped(
-                        videoid,
-                        audio_parameters=HighQualityAudio(),
-                        video_parameters=MediumQualityVideo(),
-                    )
-                    if str(streamtype) == "video"
-                    else AudioPiped(videoid, audio_parameters=HighQualityAudio())
-                )
+                stream = AudioVideoPiped(videoid, audio_parameters=HighQualityAudio(), video_parameters=MediumQualityVideo()) if str(streamtype) == "video" else AudioPiped(videoid, audio_parameters=HighQualityAudio())
                 try:
                     await client.change_stream(chat_id, stream)
                 except:
-                    return await app.send_message(
-                        original_chat_id,
-                        text=_["call_6"],
-                    )
+                    return await app.send_message(original_chat_id, text=_["call_6"])
                 button = stream_markup(_, chat_id)
                 run = await app.send_photo(
-                    chat_id=original_chat_id,
-                    photo=config.STREAM_IMG_URL,
-                    caption=_["stream_2"].format(user),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    chat_id=original_chat_id, photo=config.STREAM_IMG_URL, caption=_["stream_2"].format(user), reply_markup=InlineKeyboardMarkup(button)
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
+                
             else:
                 if video:
-                    stream = AudioVideoPiped(
-                        queued,
-                        audio_parameters=HighQualityAudio(),
-                        video_parameters=MediumQualityVideo(),
-                    )
+                    stream = AudioVideoPiped(queued, audio_parameters=HighQualityAudio(), video_parameters=MediumQualityVideo())
                 else:
-                    stream = AudioPiped(
-                        queued,
-                        audio_parameters=HighQualityAudio(),
-                    )
+                    stream = AudioPiped(queued, audio_parameters=HighQualityAudio())
                 try:
                     await client.change_stream(chat_id, stream)
                 except:
-                    return await app.send_message(
-                        original_chat_id,
-                        text=_["call_6"],
-                    )
+                    return await app.send_message(original_chat_id, text=_["call_6"])
                 if videoid == "telegram":
                     button = stream_markup(_, chat_id)
                     run = await app.send_photo(
                         chat_id=original_chat_id,
-                        photo=config.TELEGRAM_AUDIO_URL
-                        if str(streamtype) == "audio"
-                        else config.TELEGRAM_VIDEO_URL,
-                        caption=_["stream_1"].format(
-                            config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
-                        ),
+                        photo=config.TELEGRAM_AUDIO_URL if str(streamtype) == "audio" else config.TELEGRAM_VIDEO_URL,
+                        caption=_["stream_1"].format(config.SUPPORT_CHAT, title[:23], check[0]["dur"], user),
                         reply_markup=InlineKeyboardMarkup(button),
                     )
                     db[chat_id][0]["mystic"] = run
@@ -625,12 +598,7 @@ class Call(PyTgCalls):
                 elif videoid == "soundcloud":
                     button = stream_markup(_, chat_id)
                     run = await app.send_photo(
-                        chat_id=original_chat_id,
-                        photo=config.SOUNCLOUD_IMG_URL,
-                        caption=_["stream_1"].format(
-                            config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
-                        ),
-                        reply_markup=InlineKeyboardMarkup(button),
+                        chat_id=original_chat_id, photo=config.SOUNCLOUD_IMG_URL, caption=_["stream_1"].format(config.SUPPORT_CHAT, title[:23], check[0]["dur"], user), reply_markup=InlineKeyboardMarkup(button)
                     )
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "tg"
@@ -640,16 +608,16 @@ class Call(PyTgCalls):
                     run = await app.send_photo(
                         chat_id=original_chat_id,
                         photo=img,
-                        caption=_["stream_1"].format(
-                            f"https://t.me/{app.username}?start=info_{videoid}",
-                            title[:23],
-                            check[0]["dur"],
-                            user,
-                        ),
+                        caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{videoid}", title[:23], check[0]["dur"], user),
                         reply_markup=InlineKeyboardMarkup(button),
                     )
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "stream"
+
+            # 🔥 PRE-FETCHER TRIGGER 🔥
+            # Jaise hi bot current gaana bajana shuru karega, background me next gaana download kar lega!
+            if len(db.get(chat_id, [])) == 1:
+                asyncio.create_task(auto_prefetch(chat_id, db[chat_id][0]))
 
     async def ping(self):
         pings = []
