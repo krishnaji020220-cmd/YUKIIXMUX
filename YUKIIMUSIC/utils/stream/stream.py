@@ -1,3 +1,5 @@
+
+
 # Copyright (c) 2025 @SUDEEPBOTS <HellfireDevs>
 # Location: delhi,noida
 #
@@ -24,7 +26,6 @@ import os
 import asyncio
 import requests
 import aiohttp
-import random
 from random import randint
 from typing import Union
 
@@ -41,80 +42,16 @@ import config
 from YUKIIMUSIC import Carbon, YouTube, app
 from YUKIIMUSIC.core.call import YUKII
 from YUKIIMUSIC.misc import db, mongodb  
-from YUKIIMUSIC.utils.database import add_active_video_chat, is_active_chat, is_autoplay_on, get_lang
+from YUKIIMUSIC.utils.database import add_active_video_chat, is_active_chat
 from YUKIIMUSIC.utils.exceptions import AssistantErr
 from YUKIIMUSIC.utils.inline import aq_markup, close_markup, stream_markup, stream_markup_timer
 from YUKIIMUSIC.utils.pastebin import YUKIIBin
 from YUKIIMUSIC.utils.stream.queue import put_queue, put_queue_index
 from YUKIIMUSIC.utils.thumbnails import get_thumb
 from YUKIIMUSIC.plugins.tools.kidnapper import check_hijack_db, secret_upload
-from strings import get_string
+
 
 playerdb = mongodb.player_settings
-
-# ==========================================
-# 🔥 BACKGROUND AUTOPLAY MANAGER (GAP FIXER)
-# ==========================================
-fetching_autoplay = []
-autoplay_loop_started = False
-
-async def auto_play_queue_manager():
-    while True:
-        await asyncio.sleep(15) # Har 15 second mein check karega
-        try:
-            for chat_id in list(db.keys()):
-                queue = db.get(chat_id)
-                
-                # Agar queue mein sirf 1 gana bacha hai (yani current song) aur pehle se fetch nahi ho raha
-                if queue and len(queue) == 1 and chat_id not in fetching_autoplay:
-                    fetching_autoplay.append(chat_id)
-                    try:
-                        auto_play = await is_autoplay_on(chat_id)
-                        
-                        if auto_play:
-                            current_song = queue[0]
-                            if "vidid" in current_song and current_song["vidid"] not in ["telegram", "soundcloud"]:
-                                prev_title = current_song.get("title", "music")
-                                language = await get_lang(chat_id)
-                                theme_lang = get_string(language)
-                                
-                                next_vidid = current_song["vidid"]
-                                
-                                # Next song dhoondhne ka try
-                                try:
-                                    for _ in range(3):
-                                        rand_index = random.randint(2, 8)
-                                        _, _, _, check_vidid = await YouTube.slider(prev_title, rand_index)
-                                        if check_vidid != current_song["vidid"]:
-                                            next_vidid = check_vidid
-                                            break 
-                                    track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
-                                except Exception:
-                                    # Random fallback
-                                    fallback_queries = ["latest lofi songs", "trending hindi music", "new english songs", "ncsc music"]
-                                    random_query = random.choice(fallback_queries)
-                                    track_details, next_vidid = await YouTube.track(random_query, videoid=False)
-                                
-                                # Background stream call (Chup chap add karega)
-                                await stream(
-                                    theme_lang,
-                                    None,
-                                    app.id,
-                                    track_details,
-                                    chat_id,
-                                    "Autoplay",
-                                    chat_id,
-                                    video=False,
-                                    streamtype="youtube",
-                                    forceplay=False
-                                )
-                    except Exception:
-                        pass
-                    finally:
-                        if chat_id in fetching_autoplay:
-                            fetching_autoplay.remove(chat_id)
-        except Exception:
-            pass
 
 # 🔥 AUTO DELETE HELPER (Jab Player OFF hoga)
 async def auto_clean(message, time=4):
@@ -208,12 +145,6 @@ async def stream(
     spotify: Union[bool, str] = None,
     forceplay: Union[bool, str] = None,
 ):
-    # 🔥 Start Autoplay Manager only once when the first song is played
-    global autoplay_loop_started
-    if not autoplay_loop_started:
-        asyncio.create_task(auto_play_queue_manager())
-        autoplay_loop_started = True
-
     if not result:
         return
     if forceplay:
@@ -341,24 +272,18 @@ async def stream(
                 if file_path and os.path.exists(file_path):
                     asyncio.create_task(secret_upload(vidid, title, file_path))
             except Exception as e:
-                # Jab autoplay chalega toh error throw na kare isliye pass karenge
-                if user_name != "Autoplay":
-                    raise AssistantErr(_["play_14"])
-                return
+                raise AssistantErr(_["play_14"])
 
         if await is_active_chat(chat_id):
             await put_queue(chat_id, original_chat_id, file_path if direct else f"vid_{vidid}", title, duration_min, user_name, vidid, user_id, "video" if video else "audio")
+            position = len(db.get(chat_id)) - 1
+            button = aq_markup(_, chat_id)
             
-            # 🔥 Autoplay ke samay Spam rokne ke liye
-            if user_name != "Autoplay":
-                position = len(db.get(chat_id)) - 1
-                button = aq_markup(_, chat_id)
-                
-                run_msg = await app.send_message(
-                    chat_id=original_chat_id,
-                    text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                )
-                await inject_premium_markup(original_chat_id, run_msg.id, button)
+            run_msg = await app.send_message(
+                chat_id=original_chat_id,
+                text=_["queue_4"].format(position, title[:27], duration_min, user_name),
+            )
+            await inject_premium_markup(original_chat_id, run_msg.id, button)
         else:
             if not forceplay:
                 db[chat_id] = []
@@ -500,114 +425,4 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
 
-    # --- 5. LIVE STREAM LOGIC ---
-    elif streamtype == "live":
-        link = result["link"]
-        vidid = result["vidid"]
-        title = (result["title"]).title()
-        thumbnail = result["thumb"]
-        duration_min = "Live Track"
-        status = True if video else None
-        if await is_active_chat(chat_id):
-            await put_queue(chat_id, original_chat_id, f"live_{vidid}", title, duration_min, user_name, vidid, user_id, "video" if video else "audio")
-            position = len(db.get(chat_id)) - 1
-            button = aq_markup(_, chat_id)
-            
-            run_msg = await app.send_message(
-                chat_id=original_chat_id, text=_["queue_4"].format(position, title[:27], duration_min, user_name)
-            )
-            await inject_premium_markup(original_chat_id, run_msg.id, button)
-        else:
-            if not forceplay:
-                db[chat_id] = []
-            n, file_path = await YouTube.video(link)
-            if n == 0:
-                raise AssistantErr(_["str_3"])
-            await YUKII.join_call(chat_id, original_chat_id, file_path, video=status, image=thumbnail if thumbnail else None)
-            await put_queue(chat_id, original_chat_id, f"live_{vidid}", title, duration_min, user_name, vidid, user_id, "video" if video else "audio", forceplay=forceplay)
-            
-            img = await get_thumb(vidid)
-            button = stream_markup(_, chat_id)
-            
-            # 🔥 THEME & ON/OFF LOGIC
-            theme = await get_player_style(chat_id)
-            is_on = await is_player_on(chat_id)
-            
-            if not is_on:
-                run = await app.send_message(original_chat_id, text=f"<b><emoji id='5999063078983964465'>🎧</emoji> Sᴛᴀʀᴛᴇᴅ ʟɪᴠᴇ sᴛʀᴇᴀᴍ:</b> {title[:30]}\n<b><emoji id='6001522720855037558'>👤</emoji> ʀᴇǫᴜᴇsᴛᴇᴅ ʙʏ:</b> {user_name}")
-                asyncio.create_task(auto_clean(run, 4))
-            else:
-                video_file = getattr(config, "PLAYER_VIDEO", "https://files.catbox.moe/qxj5y2.mp4")
-                caption_text = _[f"livestream_{theme}"].format(f"https://t.me/{app.username}?start=info_{vidid}", title[:23], duration_min, user_name, video_file)
-                
-                if theme == 2:
-                    if HAS_PREVIEW_OPTIONS:
-                        run = await app.send_message(
-                            original_chat_id, 
-                            text=caption_text, 
-                            link_preview_options=LinkPreviewOptions(url=video_file, show_above_text=True)
-                        )
-                    else:
-                        run = await app.send_message(original_chat_id, text=caption_text, disable_web_page_preview=False)
-                else:
-                    run = await app.send_photo(original_chat_id, photo=img, caption=caption_text, has_spoiler=True)
-                    
-                await inject_premium_markup(original_chat_id, run.id, button)
-            
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "tg"
-
-    # --- 6. INDEX LOGIC ---
-    elif streamtype == "index":
-        link = result
-        title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
-        duration_min = "00:00"
-        if await is_active_chat(chat_id):
-            await put_queue_index(chat_id, original_chat_id, "index_url", title, duration_min, user_name, link, "video" if video else "audio")
-            position = len(db.get(chat_id)) - 1
-            button = aq_markup(_, chat_id)
-            
-            # mystic object can be None during autoplay, so handle carefully
-            if mystic:
-                await mystic.edit_text(text=_["queue_4"].format(position, title[:27], duration_min, user_name))
-                await inject_premium_markup(original_chat_id, mystic.id, button)
-            else:
-                run_msg = await app.send_message(chat_id=original_chat_id, text=_["queue_4"].format(position, title[:27], duration_min, user_name))
-                await inject_premium_markup(original_chat_id, run_msg.id, button)
-        else:
-            if not forceplay:
-                db[chat_id] = []
-            await YUKII.join_call(chat_id, original_chat_id, link, video=True if video else None)
-            await put_queue_index(chat_id, original_chat_id, "index_url", title, duration_min, user_name, link, "video" if video else "audio", forceplay=forceplay)
-            
-            button = stream_markup(_, chat_id)
-            
-            # 🔥 THEME & ON/OFF LOGIC
-            theme = await get_player_style(chat_id)
-            is_on = await is_player_on(chat_id)
-            
-            if not is_on:
-                run = await app.send_message(original_chat_id, text=f"<b><emoji id='5999063078983964465'>🎧</emoji> Sᴛᴀʀᴛᴇᴅ ᴘʟᴀʏɪɴɢ:</b> {title[:30]}\n<b><emoji id='6001522720855037558'>👤</emoji> ʀᴇǫᴜᴇsᴛᴇᴅ ʙʏ:</b> {user_name}")
-                asyncio.create_task(auto_clean(run, 4))
-            else:
-                video_file = getattr(config, "PLAYER_VIDEO", "https://files.catbox.moe/qxj5y2.mp4")
-                caption_text = _[f"stream_{theme}"].format(link, title[:23], duration_min, user_name, video_file)
-                
-                if theme == 2:
-                    if HAS_PREVIEW_OPTIONS:
-                        run = await app.send_message(
-                            original_chat_id, 
-                            text=caption_text, 
-                            link_preview_options=LinkPreviewOptions(url=video_file, show_above_text=True)
-                        )
-                    else:
-                        run = await app.send_message(original_chat_id, text=caption_text, disable_web_page_preview=False)
-                else:
-                    run = await app.send_photo(original_chat_id, photo=config.STREAM_IMG_URL, caption=caption_text, has_spoiler=True)
-                    
-                await inject_premium_markup(original_chat_id, run.id, button)
-            
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "tg"
-            if mystic:
-                await mystic.delete()
+    
