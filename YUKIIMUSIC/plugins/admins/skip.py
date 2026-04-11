@@ -61,6 +61,36 @@ async def skip(cli, message: Message, _, chat_id):
                                 return await message.reply_text(_["admin_12"])
                             if popped:
                                 await auto_clean(popped)
+                            
+                            # 🔥 AUTOPLAY INJECTION (Multiple Skip)
+                            if not check:
+                                try:
+                                    from YUKIIMUSIC.utils.database import is_autoplay_on
+                                    import random
+                                    auto_play = await is_autoplay_on(chat_id)
+                                    if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
+                                        prev_title = popped.get("title", "music")
+                                        next_vidid = popped["vidid"]
+                                        for _ in range(3):
+                                            rand_index = random.randint(2, 8)
+                                            _, _, _, check_vidid = await YouTube.slider(prev_title, rand_index)
+                                            if check_vidid != popped["vidid"]:
+                                                next_vidid = check_vidid
+                                                break
+                                        track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+                                        check.append({
+                                            "title": track_details["title"].title(),
+                                            "file": f"vid_{next_vidid}",
+                                            "dur": track_details["duration_min"],
+                                            "by": "Autoplay",
+                                            "chat_id": chat_id,
+                                            "streamtype": "youtube",
+                                            "vidid": next_vidid,
+                                            "played": 0
+                                        })
+                                except Exception:
+                                    pass
+
                             if not check:
                                 try:
                                     await message.reply_text(
@@ -89,6 +119,51 @@ async def skip(cli, message: Message, _, chat_id):
             popped = check.pop(0)
             if popped:
                 await auto_clean(popped)
+            
+            # 🔥 AUTOPLAY INJECTION (Single Skip)
+            if not check:
+                try:
+                    from YUKIIMUSIC.utils.database import is_autoplay_on
+                    import random
+                    auto_play = await is_autoplay_on(chat_id)
+                    if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
+                        prev_title = popped.get("title", "music")
+                        next_vidid = popped["vidid"]
+                        for _ in range(3):
+                            rand_index = random.randint(2, 8)
+                            _, _, _, check_vidid = await YouTube.slider(prev_title, rand_index)
+                            if check_vidid != popped["vidid"]:
+                                next_vidid = check_vidid
+                                break
+                        track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+                        check.append({
+                            "title": track_details["title"].title(),
+                            "file": f"vid_{next_vidid}",
+                            "dur": track_details["duration_min"],
+                            "by": "Autoplay",
+                            "chat_id": chat_id,
+                            "streamtype": "youtube",
+                            "vidid": next_vidid,
+                            "played": 0
+                        })
+                except Exception:
+                    try:
+                        fallback_queries = ["latest lofi songs", "trending hindi music", "new english songs"]
+                        random_query = random.choice(fallback_queries)
+                        track_details, next_vidid = await YouTube.track(random_query, videoid=False)
+                        check.append({
+                            "title": track_details["title"].title(),
+                            "file": f"vid_{next_vidid}",
+                            "dur": track_details["duration_min"],
+                            "by": "Autoplay",
+                            "chat_id": chat_id,
+                            "streamtype": "youtube",
+                            "vidid": next_vidid,
+                            "played": 0
+                        })
+                    except Exception:
+                        pass
+
             if not check:
                 await message.reply_text(
                     text=_["admin_6"].format(
@@ -252,3 +327,4 @@ async def skip(cli, message: Message, _, chat_id):
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
+        
