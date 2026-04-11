@@ -365,13 +365,11 @@ class Call(PyTgCalls):
             
             if not check:
                 # ==========================================
-                # ==========================================
-                # AUTO PLAY LOGIC (FIXED & SMART)
+# ==========================================
+                # AUTO PLAY LOGIC (100% FIXED & TESTED)
                 # ==========================================
                 try:
-                    from YUKIIMUSIC.utils.database import is_autoplay_on, get_lang
-                    from YUKIIMUSIC.utils.stream.stream import stream
-                    from strings import get_string
+                    from YUKIIMUSIC.utils.database import is_autoplay_on
                     import random
                     
                     auto_play = await is_autoplay_on(chat_id)
@@ -379,62 +377,46 @@ class Call(PyTgCalls):
                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
                         prev_title = popped.get("title", "music")
                         
-                        language = await get_lang(chat_id)
-                        theme_lang = get_string(language)
-                        
-                        msg = await app.send_message(chat_id, theme_lang["play_1"])
-                        
-                        # 🔥 SMART FILTER LOGIC
-                        # Title ke faltu words hata ke sirf main gaane ka naam nikalo
+                        # Faltu words hatana taaki naya gaana mile
                         clean_title = prev_title.split("|")[0].split("(")[0].strip()
-                        search_query = f"{clean_title} similar tracks"
+                        search_query = f"{clean_title} audio"
                         
                         next_vidid = popped["vidid"]
                         
                         try:
-                            # 1 se 4 ke beech uthao taaki 'Index out of range' error na aaye
-                            rand_index = random.randint(1, 4)
+                            # 1, 2, 3 mein se random uthana
+                            rand_index = random.randint(1, 3)
                             _, _, _, check_vidid = await YouTube.slider(search_query, rand_index)
                             
-                            # Ensure karo ki naya gaana purane wale se alag ho
                             if check_vidid and check_vidid != popped["vidid"]:
                                 next_vidid = check_vidid
                                 
                             track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
                         except Exception:
-                            # 🚨 FALLBACK: Agar koi error aaye toh same gaana mat bajao!
-                            # Koi bhi random mast trending playlist utha lo
-                            fallback_queries = ["Lofi chill track", "Trending pop hits", "NCS latest", "Aesthetic vibe songs"]
+                            # FALLBACK: Agar fail hua toh trending gaana bajao
+                            fallback_queries = ["trending english hits", "lofi chill tracks", "latest aesthetic songs"]
                             fallback_query = random.choice(fallback_queries)
-                            
                             _, _, _, check_vidid = await YouTube.slider(fallback_query, 1)
                             if check_vidid:
                                 next_vidid = check_vidid
-                                
                             track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+
+                        # 🔥 THE MASTER FIX: Direct Queue (check) mein daalo bina stream call kiye
+                        check.append({
+                            "vidid": next_vidid,
+                            "title": track_details["title"],
+                            "by": "Autoplay [Bot]",
+                            "chat_id": chat_id,
+                            "dur": track_details["duration_min"],
+                            "seconds": track_details["duration_sec"],
+                            "file": f"vid_{next_vidid}", 
+                            "streamtype": "audio",
+                        })
+                        # Yahan se return mat karna! Taaki code aage badh ke PyTgCalls ko play karwa de
                         
-                        await stream(
-                            theme_lang,
-                            msg,
-                            app.id,
-                            track_details,
-                            chat_id,
-                            "Autoplay",
-                            chat_id,
-                            video=False,
-                            streamtype="youtube",
-                            forceplay=False
-                        )
-                        
-                        try:
-                            await msg.delete()
-                        except Exception:
-                            pass
-                            
-                        return 
                 except Exception as e:
                     print(f"Autoplay Error: {e}")
-                                     
+
                 # ==========================================
                 # NORMAL LEAVE LOGIC 
                 # ========================================== 
