@@ -35,7 +35,7 @@ def load_fonts():
             "tfont": ImageFont.truetype("YUKIIMUSIC/assets/font.ttf", 30),
         }
     except Exception as e:
-        LOGGER.error("Font loading error: %s, using default fonts", e)
+        LOGGER(__name__).error("Font loading error: %s, using default fonts", e)
         return {
             "cfont": ImageFont.load_default(),
             "tfont": ImageFont.load_default(),
@@ -85,7 +85,7 @@ async def fetch_image(url: str) -> Image.Image:
                 img = await resize_youtube_thumbnail(img) # Hamesha resize karega taaki design na bigde
             return img
         except Exception as e:
-            LOGGER.error("Image loading error for URL %s: %s", url, e)
+            LOGGER(__name__).error("Image loading error for URL %s: %s", url, e)
             try:
                 response = await client.get(YOUTUBE_IMG_URL, timeout=5)
                 response.raise_for_status()
@@ -93,14 +93,14 @@ async def fetch_image(url: str) -> Image.Image:
                 img = await resize_youtube_thumbnail(img)
                 return img
             except Exception as e:
-                LOGGER.error("YouTube fallback image error: %s", e)
+                LOGGER(__name__).error("YouTube fallback image error: %s", e)
                 try:
                     async with aiofiles.open(FALLBACK_IMAGE_PATH, mode="rb") as f:
                         img = Image.open(BytesIO(await f.read())).convert("RGBA")
                     img = await resize_youtube_thumbnail(img)
                     return img
                 except Exception as e:
-                    LOGGER.error("Local fallback image error: %s", e)
+                    LOGGER(__name__).error("Local fallback image error: %s", e)
                     return Image.new("RGBA", (1280, 720), (255, 255, 255, 255))
 
 def clean_text(text: str, limit: int = 25) -> str:
@@ -122,7 +122,7 @@ async def add_controls(img: Image.Image) -> Image.Image:
         controls_x = 305 + (670 - 600) // 2 
         controls_y = 415  
     except Exception as e:
-        LOGGER.error("Controls image loading error: %s", e)
+        LOGGER(__name__).error("Controls image loading error: %s", e)
         controls = Image.new("RGBA", (600, 160), (0, 0, 0, 0))
         controls_x, controls_y = 335, 415
 
@@ -162,7 +162,7 @@ def make_rounded_rectangle(image: Image.Image, size: tuple = (184, 184)) -> Imag
 
 async def get_thumb(videoid: str) -> str:
     if not videoid or not re.match(r"^[a-zA-Z0-9_-]{11}$", videoid):
-        LOGGER.error("Invalid YouTube video ID: %s", videoid)
+        LOGGER(__name__).error("Invalid YouTube video ID: %s", videoid)
         return ""
 
     save_dir = f"database/photos/{videoid}.png"
@@ -172,7 +172,7 @@ async def get_thumb(videoid: str) -> str:
         if not await aiopath.exists(save_dir_parent):
             await asyncio.to_thread(os.makedirs, save_dir_parent)
     except Exception as e:
-        LOGGER.error("Failed to create directory %s: %s", save_dir_parent, e)
+        LOGGER(__name__).error("Failed to create directory %s: %s", save_dir_parent, e)
         return ""
 
     try:
@@ -186,7 +186,7 @@ async def get_thumb(videoid: str) -> str:
         thumbnail_url = YOUTUBE_IMG_URL 
         
     except Exception as e:
-        LOGGER.error("YouTube metadata fetch error for video %s: %s", videoid, e)
+        LOGGER(__name__).error("YouTube metadata fetch error for video %s: %s", videoid, e)
         title, artist = "Unknown Title", "Unknown Artist"
         thumbnail_url = YOUTUBE_IMG_URL
 
@@ -211,9 +211,9 @@ async def get_thumb(videoid: str) -> str:
             image.close()
             bg.close()
             return save_dir
-        LOGGER.error("Failed to save thumbnail at %s", save_dir)
+        LOGGER(__name__).error("Failed to save thumbnail at %s", save_dir)
     except Exception as e:
-        LOGGER.error("Thumbnail save error for %s: %s", save_dir, e)
+        LOGGER(__name__).error("Thumbnail save error for %s: %s", save_dir, e)
 
     thumb.close()
     image.close()
