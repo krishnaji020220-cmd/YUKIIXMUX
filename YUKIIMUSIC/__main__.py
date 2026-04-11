@@ -22,6 +22,7 @@
 import YUKIIMUSIC.yuki_guard
 import asyncio
 import importlib
+import logging #  Added for silencer
 
 from pyrogram import idle
 from pytgcalls.exceptions import NoActiveGroupCall
@@ -37,6 +38,20 @@ from config import BANNED_USERS
 # 
 # 
 from YUKIIMUSIC.core.deploy import send_deploy_message
+
+# ==========================================
+#  ERROR SILENCER ENGINE 
+# ==========================================
+class SilenceAnnoyingError(logging.Filter):
+    def filter(self, record):
+        # Ye sirf tabhi chup karega jab exactly ye error text hoga
+        if record.exc_info and "'UpdateGroupCall' object has no attribute 'chat_id'" in str(record.exc_info[1]):
+            return False 
+        return True # Baaki sab normal chalne do
+
+# Silencer ko pyrogram par laga diya
+logging.getLogger("pyrogram.dispatcher").addFilter(SilenceAnnoyingError())
+# ==========================================
 
 
 async def init():
