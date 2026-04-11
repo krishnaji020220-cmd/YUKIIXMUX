@@ -2,26 +2,10 @@
 # Location: delhi,noida
 #
 # All rights reserved.
-#
-# This code is the intellectual SUDEEPBOTS.
-# You are not allowed to copy, modify, redistribute, or use this
-# code for commercial or personal projects without explicit permission.
-#
-# Allowed:
-# - Forking for personal learning
-# - Submitting improvements via pull requests
-#
-# Not Allowed:
-# - Claiming this code as your own
-# - Re-uploading without credit or permission
-# - Selling or using commercially
-#
-# Contact for permissions:
-# Email: sudeepgithub@gmail.com
 
 import YUKIIMUSIC.yuki_guard
 from pyrogram import filters
-from pyrogram.types import InlineKeyboardMarkup, Message
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 
 import config
 from YUKIIMUSIC import YouTube, app
@@ -33,6 +17,27 @@ from YUKIIMUSIC.utils.inline import close_markup, stream_markup
 from YUKIIMUSIC.utils.stream.autoclear import auto_clean
 from YUKIIMUSIC.utils.thumbnails import get_thumb
 from config import BANNED_USERS
+
+# 🔥 ERROR FIX: Dictionary ko Button mein convert karne ka smart tool
+def convert_markup(markup):
+    if not markup:
+        return None
+    if isinstance(markup, InlineKeyboardMarkup):
+        return markup
+    new_markup = []
+    for row in markup:
+        new_row = []
+        for btn in row:
+            if isinstance(btn, InlineKeyboardButton):
+                new_row.append(btn)
+            elif isinstance(btn, dict):
+                valid_keys = ['text', 'callback_data', 'url', 'login_url', 'user', 'switch_inline_query', 'switch_inline_query_current_chat', 'callback_game', 'pay']
+                clean_btn = {k: v for k, v in btn.items() if k in valid_keys}
+                new_row.append(InlineKeyboardButton(**clean_btn))
+            else:
+                new_row.append(btn)
+        new_markup.append(new_row)
+    return InlineKeyboardMarkup(new_markup)
 
 
 @app.on_message(
@@ -62,7 +67,7 @@ async def skip(cli, message: Message, _, chat_id):
                             if popped:
                                 await auto_clean(popped)
                             
-                            # 🔥 AUTOPLAY INJECTION
+                            # 🔥 MANUAL INJECTION (Double Song fix)
                             if not check:
                                 try:
                                     from YUKIIMUSIC.utils.database import is_autoplay_on
@@ -71,18 +76,25 @@ async def skip(cli, message: Message, _, chat_id):
                                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
                                         prev_title = popped.get("title", "music")
                                         next_vidid = popped["vidid"]
-                                        for attempt in range(3): # FIX: Changed _ to attempt
-                                            rand_index = random.randint(2, 8)
-                                            chk_1, chk_2, chk_3, check_vidid = await YouTube.slider(prev_title, rand_index)
-                                            if check_vidid != popped["vidid"]:
-                                                next_vidid = check_vidid
-                                                break
-                                        track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+                                        try:
+                                            for attempt in range(3):
+                                                rand_index = random.randint(2, 8)
+                                                _, _, _, check_vidid = await YouTube.slider(prev_title, rand_index)
+                                                if check_vidid != popped["vidid"]:
+                                                    next_vidid = check_vidid
+                                                    break
+                                            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+                                        except Exception:
+                                            # Strict Fallback
+                                            fallback_queries = ["latest hit songs 3 mins", "top trending pop songs", "new romantic songs track"]
+                                            random_query = random.choice(fallback_queries)
+                                            track_details, next_vidid = await YouTube.track(random_query, videoid=False)
+                                            
                                         check.append({
                                             "title": track_details["title"].title(),
                                             "file": f"vid_{next_vidid}",
                                             "dur": track_details["duration_min"],
-                                            "seconds": track_details.get("duration_sec", 0), # FIX: Added seconds
+                                            "seconds": track_details.get("duration_sec", 0),
                                             "by": "Autoplay",
                                             "chat_id": chat_id,
                                             "streamtype": "youtube",
@@ -121,7 +133,7 @@ async def skip(cli, message: Message, _, chat_id):
             if popped:
                 await auto_clean(popped)
             
-            # 🔥 AUTOPLAY INJECTION
+            # 🔥 MANUAL INJECTION (Double Song fix)
             if not check:
                 try:
                     from YUKIIMUSIC.utils.database import is_autoplay_on
@@ -130,18 +142,25 @@ async def skip(cli, message: Message, _, chat_id):
                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
                         prev_title = popped.get("title", "music")
                         next_vidid = popped["vidid"]
-                        for attempt in range(3): # FIX: Changed _ to attempt
-                            rand_index = random.randint(2, 8)
-                            chk_1, chk_2, chk_3, check_vidid = await YouTube.slider(prev_title, rand_index)
-                            if check_vidid != popped["vidid"]:
-                                next_vidid = check_vidid
-                                break
-                        track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+                        try:
+                            for attempt in range(3):
+                                rand_index = random.randint(2, 8)
+                                _, _, _, check_vidid = await YouTube.slider(prev_title, rand_index)
+                                if check_vidid != popped["vidid"]:
+                                    next_vidid = check_vidid
+                                    break
+                            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
+                        except Exception:
+                            # Strict Fallback
+                            fallback_queries = ["latest hit songs 3 mins", "top trending pop songs", "new romantic songs track"]
+                            random_query = random.choice(fallback_queries)
+                            track_details, next_vidid = await YouTube.track(random_query, videoid=False)
+                            
                         check.append({
                             "title": track_details["title"].title(),
                             "file": f"vid_{next_vidid}",
                             "dur": track_details["duration_min"],
-                            "seconds": track_details.get("duration_sec", 0), # FIX: Added seconds
+                            "seconds": track_details.get("duration_sec", 0),
                             "by": "Autoplay",
                             "chat_id": chat_id,
                             "streamtype": "youtube",
@@ -149,23 +168,7 @@ async def skip(cli, message: Message, _, chat_id):
                             "played": 0
                         })
                 except Exception:
-                    try:
-                        fallback_queries = ["latest lofi songs", "trending hindi music", "new english songs"]
-                        random_query = random.choice(fallback_queries)
-                        track_details, next_vidid = await YouTube.track(random_query, videoid=False)
-                        check.append({
-                            "title": track_details["title"].title(),
-                            "file": f"vid_{next_vidid}",
-                            "dur": track_details["duration_min"],
-                            "seconds": track_details.get("duration_sec", 0), # FIX: Added seconds
-                            "by": "Autoplay",
-                            "chat_id": chat_id,
-                            "streamtype": "youtube",
-                            "vidid": next_vidid,
-                            "played": 0
-                        })
-                    except Exception:
-                        pass
+                    pass
 
             if not check:
                 await message.reply_text(
@@ -218,13 +221,8 @@ async def skip(cli, message: Message, _, chat_id):
         img = await get_thumb(videoid)
         run = await message.reply_photo(
             photo=img,
-            caption=_["stream_1"].format(
-                f"https://t.me/{app.username}?start=info_{videoid}",
-                title[:23],
-                check[0]["dur"],
-                user,
-            ),
-            reply_markup=InlineKeyboardMarkup(button),
+            caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{videoid}", title[:23], check[0]["dur"], user),
+            reply_markup=convert_markup(button), # 🔥 FIX
         )
         db[chat_id][0]["mystic"] = run
         db[chat_id][0]["markup"] = "tg"
@@ -251,13 +249,8 @@ async def skip(cli, message: Message, _, chat_id):
         img = await get_thumb(videoid)
         run = await message.reply_photo(
             photo=img,
-            caption=_["stream_1"].format(
-                f"https://t.me/{app.username}?start=info_{videoid}",
-                title[:23],
-                check[0]["dur"],
-                user,
-            ),
-            reply_markup=InlineKeyboardMarkup(button),
+            caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{videoid}", title[:23], check[0]["dur"], user),
+            reply_markup=convert_markup(button), # 🔥 FIX
         )
         db[chat_id][0]["mystic"] = run
         db[chat_id][0]["markup"] = "stream"
@@ -271,7 +264,7 @@ async def skip(cli, message: Message, _, chat_id):
         run = await message.reply_photo(
             photo=config.STREAM_IMG_URL,
             caption=_["stream_2"].format(user),
-            reply_markup=InlineKeyboardMarkup(button),
+            reply_markup=convert_markup(button), # 🔥 FIX
         )
         db[chat_id][0]["mystic"] = run
         db[chat_id][0]["markup"] = "tg"
@@ -292,26 +285,18 @@ async def skip(cli, message: Message, _, chat_id):
         if videoid == "telegram":
             button = stream_markup(_, chat_id)
             run = await message.reply_photo(
-                photo=config.TELEGRAM_AUDIO_URL
-                if str(streamtype) == "audio"
-                else config.TELEGRAM_VIDEO_URL,
-                caption=_["stream_1"].format(
-                    config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
+                photo=config.TELEGRAM_AUDIO_URL if str(streamtype) == "audio" else config.TELEGRAM_VIDEO_URL,
+                caption=_["stream_1"].format(config.SUPPORT_CHAT, title[:23], check[0]["dur"], user),
+                reply_markup=convert_markup(button), # 🔥 FIX
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
         elif videoid == "soundcloud":
             button = stream_markup(_, chat_id)
             run = await message.reply_photo(
-                photo=config.SOUNCLOUD_IMG_URL
-                if str(streamtype) == "audio"
-                else config.TELEGRAM_VIDEO_URL,
-                caption=_["stream_1"].format(
-                    config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
+                photo=config.SOUNCLOUD_IMG_URL if str(streamtype) == "audio" else config.TELEGRAM_VIDEO_URL,
+                caption=_["stream_1"].format(config.SUPPORT_CHAT, title[:23], check[0]["dur"], user),
+                reply_markup=convert_markup(button), # 🔥 FIX
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -320,14 +305,9 @@ async def skip(cli, message: Message, _, chat_id):
             img = await get_thumb(videoid)
             run = await message.reply_photo(
                 photo=img,
-                caption=_["stream_1"].format(
-                    f"https://t.me/{app.username}?start=info_{videoid}",
-                    title[:23],
-                    check[0]["dur"],
-                    user,
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
+                caption=_["stream_1"].format(f"https://t.me/{app.username}?start=info_{videoid}", title[:23], check[0]["dur"], user),
+                reply_markup=convert_markup(button), # 🔥 FIX
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
-    
+        
