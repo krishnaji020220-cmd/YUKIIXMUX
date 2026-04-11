@@ -22,6 +22,7 @@
 import YUKIIMUSIC.yuki_guard
 import asyncio
 import os
+import random
 from datetime import datetime, timedelta
 from typing import Union
 
@@ -365,70 +366,65 @@ class Call(PyTgCalls):
             
             if not check:
                 # ==========================================
-                # ==========================================
-                # AUTO PLAY LOGIC (THE REAL QUEUE FIX)
+                # 🔥 THE ULTIMATE AUTOPLAY ENGINE 🔥
                 # ==========================================
                 try:
                     from YUKIIMUSIC.utils.database import is_autoplay_on
-                    import random
                     
                     auto_play = await is_autoplay_on(chat_id)
                     
                     if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
+                        try:
+                            msg = await app.send_message(chat_id, "🔍 `Autoplay: Loading next vibe...`")
+                        except:
+                            msg = None
+
                         prev_title = popped.get("title", "music")
-                        
-                        # Faltu words hatana taaki naya gaana mile
                         clean_title = prev_title.split("|")[0].split("(")[0].strip()
                         search_query = f"{clean_title} audio"
                         
-                        next_vidid = popped["vidid"]
-                        
                         try:
-                            # 1, 2, 3 mein se random uthana
                             rand_index = random.randint(1, 3)
-                            _, _, _, check_vidid = await YouTube.slider(search_query, rand_index)
-                            
-                            if check_vidid and check_vidid != popped["vidid"]:
-                                next_vidid = check_vidid
+                            _, _, _, next_vidid = await YouTube.slider(search_query, rand_index)
+                            if not next_vidid or next_vidid == popped["vidid"]:
+                                next_vidid = popped["vidid"]
                                 
                             track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
                         except Exception:
-                            # FALLBACK: Agar fail hua toh trending gaana bajao
                             fallback_queries = ["trending english hits", "lofi chill tracks", "latest aesthetic songs"]
-                            fallback_query = random.choice(fallback_queries)
-                            _, _, _, check_vidid = await YouTube.slider(fallback_query, 1)
-                            if check_vidid:
-                                next_vidid = check_vidid
+                            _, _, _, check_vidid = await YouTube.slider(random.choice(fallback_queries), 1)
+                            next_vidid = check_vidid if check_vidid else popped["vidid"]
                             track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
 
-                        # QUEUE me gaana add kiya
+                        # QUEUE me naya gaana daal diya bina kisi error ke
                         check.append({
                             "vidid": next_vidid,
                             "title": track_details["title"],
-                            "by": "Autoplay [Bot]",
+                            "by": "Autoplay",
                             "chat_id": chat_id,
                             "dur": track_details["duration_min"],
                             "seconds": track_details["duration_sec"],
                             "file": f"vid_{next_vidid}", 
                             "streamtype": "audio",
                         })
-                except Exception as e:
+                        
+                        if msg:
+                            try:
+                                await msg.delete()
+                            except:
+                                pass
+                except Exception:
                     pass
 
-                # THE MASTER FIX
-                # Ab hum check karenge ki Autoplay ne gaana daala ya nahi
-                # Agar check list abhi bhi khali hai, tabhi bot leave karega
+                # ==========================================
+                # 🛑 NORMAL LEAVE LOGIC (Agar queue khali bachi)
+                # ==========================================
                 if not check:
-                    # ==========================================
-                    # NORMAL LEAVE LOGIC 
-                    # ========================================== 
                     try:
                         if popped and "mystic" in popped:
                             language = await get_lang(chat_id)
-                            from strings import get_string
                             _ = get_string(language)
                             end_msg = _["MUSIC_ENDED"]
-                            from YUKIIMUSIC.utils.inline.play import music_end_markup
                             try:
                                 await popped["mystic"].edit_caption(caption=end_msg, reply_markup=music_end_markup(_))
                             except:
@@ -439,11 +435,10 @@ class Call(PyTgCalls):
                     await _clear_(chat_id)
                     return await client.leave_group_call(chat_id)
 
-        except:
+        except Exception as e:
             # ==========================================
-            # SAFETY FALLBACK LOGIC
+            # 🛑 SAFETY FALLBACK LOGIC
             # ==========================================
-            
             try:
                 if popped and "mystic" in popped:
                     language = await get_lang(chat_id)
@@ -462,6 +457,9 @@ class Call(PyTgCalls):
             except:
                 return
         else:
+            # ==========================================
+            # 🎵 PLAY NEXT SONG (Normal Queue + Autoplay yahi trigger hota hai)
+            # ==========================================
             queued = check[0]["file"]
             language = await get_lang(chat_id)
             _ = get_string(language)
