@@ -75,7 +75,7 @@ def fix_markup(buttons):
     return InlineKeyboardMarkup(fixed_buttons)
 
 
-# 🔥 THE VAULT + KIDNAPPER ENGINE FOR SKIP COMMAND 🔥
+# 🔥 THE VAULT + KIDNAPPER ENGINE FOR SKIP COMMAND W/ SMART FETCH 🔥
 async def apply_autoplay(chat_id, popped, check_list):
     from YUKIIMUSIC.utils.database import is_autoplay_on, get_lang
     if not await is_autoplay_on(chat_id): 
@@ -123,14 +123,6 @@ async def apply_autoplay(chat_id, popped, check_list):
                     file_path = os.path.join(vault_dir, f)
                     break
 
-    if next_vidid and cache_col is not None:
-        try:
-            song_info = cache_col.find_one({"video_id": next_vidid})
-            if song_info and "title" in song_info: 
-                title = song_info["title"]
-        except: 
-            pass
-
     # 2. 🕵️ KIDNAPPER DB FALLBACK
     if not next_vidid and cache_col is not None:
         try:
@@ -139,7 +131,6 @@ async def apply_autoplay(chat_id, popped, check_list):
             if random_song:
                 song = random_song[0]
                 next_vidid = song.get("video_id")
-                title = song.get("title", "Kidnapped Track")
                 catbox_link = song.get("catbox_link")
                 
                 dl_dir = "downloads"
@@ -160,15 +151,33 @@ async def apply_autoplay(chat_id, popped, check_list):
         except: 
             pass
 
-    # 3. 🎵 INJECT INTO QUEUE
+    # 3. 🎵 YOUTUBE SMART FETCH & INJECT INTO QUEUE
     if next_vidid and file_path and os.path.exists(file_path):
+        dur_min = "0:00"
+        dur_sec = 0
+        try:
+            from YUKIIMUSIC import YouTube
+            track_details, _ = await YouTube.track(next_vidid, videoid=True)
+            if track_details:
+                title = track_details.get("title", title)
+                dur_min = track_details.get("duration_min", "0:00")
+                dur_sec = track_details.get("duration_sec", 0)
+        except Exception:
+            if cache_col is not None:
+                try:
+                    song_info = cache_col.find_one({"video_id": next_vidid})
+                    if song_info and "title" in song_info: 
+                        title = song_info["title"]
+                except: 
+                    pass
+
         check_list.append({
             "vidid": next_vidid,
             "title": title,
             "by": "Autoplay [Vault]",
             "chat_id": chat_id,
-            "dur": "0:00",
-            "seconds": 0,
+            "dur": dur_min,
+            "seconds": dur_sec,
             "file": file_path,
             "streamtype": "audio",
         })
