@@ -650,7 +650,8 @@ class Call(PyTgCalls):
         @self.four.on_stream_end()
         @self.five.on_stream_end()
         async def stream_end_handler1(client, update: Update):
-            if not isinstance(update, StreamAudioEnded):
+            # 🔥 FIX: Handle all types of stream endings (Audio, Video, AudioVideo)
+            if type(update).__name__ not in ["StreamAudioEnded", "StreamVideoEnded", "StreamAudioVideoEnded"]:
                 return
             await self.change_stream(client, update.chat_id)
 
