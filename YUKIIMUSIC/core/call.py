@@ -363,12 +363,139 @@ class Call(PyTgCalls):
                 await set_loop(chat_id, loop)
             await auto_clean(popped)
             
-            # 🔥 1. JAISE HI GANA BADLE, PURANE WALE KO "MUSIC ENDED" KAR DO (Taaki photo atki na rahe)
+            # ==========================================
+            # 🔥 VAULT & KIDNAPPER AUTOPLAY ENGINE 🔥
+            # ==========================================
+            if not check:
+                try:
+                    from YUKIIMUSIC.utils.database import is_autoplay_on
+                    auto_play = await is_autoplay_on(chat_id)
+                    
+                    if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
+                        import random
+                        import os
+                        from pymongo import MongoClient
+                        import config
+                        import aiohttp
+
+                        vault_dir = "/home/ubuntu/Hellfire_Vault"
+                        next_vidid = None
+                        file_path = None
+                        title = "Autoplay Track"
+                        prev_vidid = popped.get("vidid", "")
+
+                        # Setup DB
+                        try:
+                            mongo_client = MongoClient(config.MONGO_DB_URI)
+                            music_db = mongo_client["MusicAPI_DB"]
+                            cache_col = music_db["songs_cache"]
+                        except:
+                            cache_col = None
+
+                        # 1. 🔥 TRY VAULT FIRST 🔥
+                        if os.path.exists(vault_dir):
+                            files = os.listdir(vault_dir)
+                            # Sirf media files filter karo
+                            valid_files = [f for f in files if f.endswith(('.mp3', '.m4a', '.mp4', '.mkv', '.webm'))]
+                            if valid_files:
+                                random.shuffle(valid_files)
+                                for f in valid_files:
+                                    vidid = f.rsplit('.', 1)[0]
+                                    # Ensure same video ID is NOT repeated
+                                    if vidid != prev_vidid:
+                                        next_vidid = vidid
+                                        file_path = os.path.join(vault_dir, f)
+                                        break
+
+                        # Vault Title fetch from DB
+                        if next_vidid and cache_col is not None:
+                            try:
+                                song_info = cache_col.find_one({"video_id": next_vidid})
+                                if song_info and "title" in song_info:
+                                    title = song_info["title"]
+                            except:
+                                pass
+
+                        # 2. 🔥 KIDNAPPER DB FALLBACK (Agar Vault fail/empty ho) 🔥
+                        if not next_vidid and cache_col is not None:
+                            try:
+                                # Fetch a completely random song that is NOT the previous one
+                                pipeline = [
+                                    {"$match": {"status": "completed", "video_id": {"$ne": prev_vidid}}},
+                                    {"$sample": {"size": 1}}
+                                ]
+                                random_song = list(cache_col.aggregate(pipeline))
+                                if random_song:
+                                    song = random_song[0]
+                                    next_vidid = song.get("video_id")
+                                    title = song.get("title", "Kidnapped Track")
+                                    catbox_link = song.get("catbox_link")
+
+                                    dl_dir = "downloads"
+                                    if not os.path.exists(dl_dir):
+                                        os.makedirs(dl_dir)
+                                    fallback_path = os.path.join(dl_dir, f"{next_vidid}_kidnap.mp3")
+
+                                    # Download with User-Agent (Catbox bypass)
+                                    if not os.path.exists(fallback_path) and catbox_link:
+                                        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                                        async with aiohttp.ClientSession(headers=headers) as session:
+                                            async with session.get(catbox_link) as resp:
+                                                if resp.status == 200:
+                                                    with open(fallback_path, "wb") as f:
+                                                        f.write(await resp.read())
+                                                    file_path = fallback_path
+                                    elif os.path.exists(fallback_path):
+                                        file_path = fallback_path
+                            except Exception as db_e:
+                                print(f"Kidnapper Fallback Error: {db_e}")
+
+                        # 3. 🔥 ADD DIRECTLY TO QUEUE (0-Lag Stream) 🔥
+                        if next_vidid and file_path and os.path.exists(file_path):
+                            check.append({
+                                "vidid": next_vidid,
+                                "title": title,
+                                "by": "Autoplay [Vault]",
+                                "chat_id": chat_id,
+                                "dur": "0:00",  # Default handled automatically
+                                "seconds": 0,
+                                "file": file_path, # Direct Local File Path!
+                                "streamtype": "audio",
+                            })
+                except Exception as e:
+                    print(f"Vault Autoplay Error: {e}")
+
+            # ==========================================
+            # 🛑 NORMAL LEAVE LOGIC (Agar Queue abhi bhi khali ho)
+            # ==========================================
+            if not check:
+                try:
+                    if popped and "mystic" in popped:
+                        language = await get_lang(chat_id)
+                        from strings import get_string
+                        _ = get_string(language)
+                        end_msg = _["MUSIC_ENDED"]
+                        from YUKIIMUSIC.utils.inline.play import music_end_markup
+                        try:
+                            await popped["mystic"].edit_caption(caption=end_msg, reply_markup=music_end_markup(_))
+                        except:
+                            await popped["mystic"].edit_text(text=end_msg, disable_web_page_preview=True, reply_markup=music_end_markup(_))
+                except Exception:
+                    pass
+                
+                await _clear_(chat_id)
+                return await client.leave_group_call(chat_id)
+        except:
+            # ==========================================
+            # 🛑 SAFETY FALLBACK LOGIC
+            # ==========================================
             try:
                 if popped and "mystic" in popped:
                     language = await get_lang(chat_id)
+                    from strings import get_string
                     _ = get_string(language)
-                    end_msg = _.get("MUSIC_ENDED", "Mᴜsɪᴄ ᴇɴᴅᴇᴅ.")
+                    end_msg = _["MUSIC_ENDED"]
+                    from YUKIIMUSIC.utils.inline.play import music_end_markup
                     try:
                         await popped["mystic"].edit_caption(caption=end_msg, reply_markup=music_end_markup(_))
                     except:
@@ -376,64 +503,6 @@ class Call(PyTgCalls):
             except Exception:
                 pass
                 
-            # 🔥 2. NATIVE AUTOPLAY INJECTION (Is se naya player automatically aayega!)
-            if not check:
-                try:
-                    from YUKIIMUSIC.utils.database import is_autoplay_on
-                    import random
-                    
-                    auto_play = await is_autoplay_on(chat_id)
-                    if auto_play and popped and "vidid" in popped and popped["vidid"] not in ["telegram", "soundcloud"]:
-                        prev_title = popped.get("title", "music")
-                        
-                        try:
-                            next_vidid = popped["vidid"]
-                            for _ in range(3):
-                                rand_index = random.randint(2, 8)
-                                _, _, _, check_vidid = await YouTube.slider(prev_title, rand_index)
-                                if check_vidid != popped["vidid"]:
-                                    next_vidid = check_vidid
-                                    break 
-                            track_details, next_vidid = await YouTube.track(next_vidid, videoid=True)
-                            
-                            # Magic: Hum chup chaap ye gana queue me daal dete hain, bot ko pata bhi nahi chalega aur wo proper photo bhejega
-                            check.append({
-                                "title": track_details["title"].title(),
-                                "file": f"vid_{next_vidid}",
-                                "dur": track_details["duration_min"],
-                                "by": "Autoplay",
-                                "chat_id": popped["chat_id"],
-                                "streamtype": "youtube",
-                                "vidid": next_vidid,
-                                "played": 0
-                            })
-                        except Exception:
-                            # Agar error aaye to kisi backup/trending gane ko queue mein daal do
-                            try:
-                                fallback_queries = ["latest lofi songs", "trending hindi music", "new english songs"]
-                                random_query = random.choice(fallback_queries)
-                                track_details, next_vidid = await YouTube.track(random_query, videoid=False)
-                                check.append({
-                                    "title": track_details["title"].title(),
-                                    "file": f"vid_{next_vidid}",
-                                    "dur": track_details["duration_min"],
-                                    "by": "Autoplay",
-                                    "chat_id": popped["chat_id"],
-                                    "streamtype": "youtube",
-                                    "vidid": next_vidid,
-                                    "played": 0
-                                })
-                            except Exception:
-                                pass
-                except Exception:
-                    pass
-
-            # 🔥 3. AGAR AUTOPLAY OFF HAI YA FAIL HO GAYA TOH HI BOT CHHOD KAR JAYEGA
-            if not check:
-                await _clear_(chat_id)
-                return await client.leave_group_call(chat_id)
-                
-        except:
             try:
                 await _clear_(chat_id)
                 return await client.leave_group_call(chat_id)
@@ -442,6 +511,7 @@ class Call(PyTgCalls):
         else:
             queued = check[0]["file"]
             language = await get_lang(chat_id)
+            from strings import get_string
             _ = get_string(language)
             title = (check[0]["title"]).title()
             user = check[0]["by"]
@@ -482,6 +552,7 @@ class Call(PyTgCalls):
                         text=_["call_6"],
                     )
                 img = await get_thumb(videoid)
+                from YUKIIMUSIC.utils.inline.play import stream_markup
                 button = stream_markup(_, chat_id)
                 run = await app.send_photo(
                     chat_id=original_chat_id,
@@ -528,6 +599,7 @@ class Call(PyTgCalls):
                         text=_["call_6"],
                     )
                 img = await get_thumb(videoid)
+                from YUKIIMUSIC.utils.inline.play import stream_markup
                 button = stream_markup(_, chat_id)
                 await mystic.delete()
                 run = await app.send_photo(
@@ -560,6 +632,7 @@ class Call(PyTgCalls):
                         original_chat_id,
                         text=_["call_6"],
                     )
+                from YUKIIMUSIC.utils.inline.play import stream_markup
                 button = stream_markup(_, chat_id)
                 run = await app.send_photo(
                     chat_id=original_chat_id,
@@ -570,6 +643,7 @@ class Call(PyTgCalls):
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
             else:
+                # 🔥 YAHAN TERA VAULT/DB WALA GAANA PLAY HOGA 0 LAG KE SATH 🔥
                 if video:
                     stream = AudioVideoPiped(
                         queued,
@@ -589,6 +663,7 @@ class Call(PyTgCalls):
                         text=_["call_6"],
                     )
                 if videoid == "telegram":
+                    from YUKIIMUSIC.utils.inline.play import stream_markup
                     button = stream_markup(_, chat_id)
                     run = await app.send_photo(
                         chat_id=original_chat_id,
@@ -603,6 +678,7 @@ class Call(PyTgCalls):
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "tg"
                 elif videoid == "soundcloud":
+                    from YUKIIMUSIC.utils.inline.play import stream_markup
                     button = stream_markup(_, chat_id)
                     run = await app.send_photo(
                         chat_id=original_chat_id,
@@ -616,6 +692,7 @@ class Call(PyTgCalls):
                     db[chat_id][0]["markup"] = "tg"
                 else:
                     img = await get_thumb(videoid)
+                    from YUKIIMUSIC.utils.inline.play import stream_markup
                     button = stream_markup(_, chat_id)
                     run = await app.send_photo(
                         chat_id=original_chat_id,
@@ -689,4 +766,3 @@ class Call(PyTgCalls):
 
 
 YUKII = Call()
-                        
