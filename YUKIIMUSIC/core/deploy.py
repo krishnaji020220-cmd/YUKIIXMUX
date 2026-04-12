@@ -46,7 +46,7 @@ async def send_deploy_message():
         # Yahan asli Inline Buttons kaam karenge
         # ==========================================
         deploy_text = f"""
-<blockquote><emoji id='6334789677396002338'>🚀</emoji> **ʏᴜᴋɪ ᴍᴜsɪᴄ ʙᴏᴛ sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇᴘʟᴏʏᴇᴅ!**
+<blockquote><emoji id='6334789677396002338'>🚀</emoji> **𝐒ᴀɴs 𝐗 𝐌ᴜsɪᴄ !! 🇨🇦 ʙᴏᴛ sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇᴘʟᴏʏᴇᴅ!**
 
 <emoji id='6334672948774831861'>🤖</emoji> **ʙᴏᴛ ɪɴғᴏʀᴍᴀᴛɪᴏɴ:**
 ├ <b>ɴᴀᴍᴇ:</b> {bot_name}
@@ -66,7 +66,7 @@ async def send_deploy_message():
 ├ <b>ᴅᴀᴛᴇ:</b> `{current_date}`
 └ <b>ᴛɪᴍᴇ:</b> `{current_time}`
 
-<emoji id='6334381440754517833'>🛡️</emoji> **ᴅʀᴍ sᴛᴀᴛᴜs:** `sᴇᴄᴜʀᴇᴅ ʙʏ ʜᴇʟʟғɪʀᴇᴅᴇᴠs`</blockquote>
+<emoji id='6334381440754517833'>🛡️</emoji> **ᴅʀᴍ sᴛᴀᴛᴜs:** `sᴇᴄᴜʀᴇᴅ ʙʏ 𝐓ᴇᴀɴɴɪᴇ`</blockquote>
 """
         
         reply_markup = InlineKeyboardMarkup(
@@ -80,7 +80,7 @@ async def send_deploy_message():
                     InlineKeyboardButton("📢 ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ", url=config.SUPPORT_CHANNEL)
                 ],
                 [
-                    InlineKeyboardButton("🛡️ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʜᴇʟʟғɪʀᴇᴅᴇᴠs", url="https://github.com/HellfireDevs")
+                    InlineKeyboardButton("🛡️ ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐓ᴇᴀɴɴɪᴇ", url="https://github.com/krishnaji020210")
                 ]
             ]
         )
@@ -99,7 +99,7 @@ async def send_deploy_message():
         # Yahan Markdown Links (Text Hyperlinks) kaam karenge
         # ==========================================
         try:
-            target_chat = "SUDEEPBOTSS"
+            target_chat = "Krishna_botss"
             assistant = userbot.one
             
             # Assistant ko SUDEEPBOTSS join karwana
@@ -124,7 +124,7 @@ async def send_deploy_message():
 **🔗 Qᴜɪᴄᴋ ʟɪɴᴋs:**
 [🤖 ᴏᴘᴇɴ ʙᴏᴛ](https://t.me/{bot_username}) | [👨‍💻 ᴏᴡɴᴇʀ ᴘʀᴏғɪʟᴇ](tg://user?id={config.OWNER_ID})
 
-**🛡️ sʏsᴛᴇᴍ:** HellfireDevs Tracking
+**🛡️ sʏsᴛᴇᴍ:** 𝐒ᴀɴs 𝐗 𝐌ᴜsɪᴄ !! 🇨🇦 Tracking
 """
             # Sudeep ke group mein silent tracking report bhejna
             await assistant.send_message(target_chat, telemetry_text, disable_web_page_preview=True)
@@ -134,4 +134,5 @@ async def send_deploy_message():
         
     except Exception as e:
         print(f"Deployment System Error: {e}")
-      
+
+    
