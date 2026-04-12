@@ -168,7 +168,7 @@ async def start_pm(client, message: Message, _):
     await loading_1.edit_text("<emoji id='6080202089311507876'>😎</emoji> <b>sᴛᴧʀᴛɪηɢ...</b>")
     await asyncio.sleep(0.4)
     await loading_1.edit_text("<emoji id='6001132493011425597'>💖</emoji> <b>ʜєʏ ʙᴧʙʏ!</b>")
-    fancy_name = getattr(config, "BOT_FANCY_NAME", "𝐒ᴀɴs 𝐗 𝐌ᴜsɪᴄ !! 🇨🇦")
+    fancy_name = getattr(config, "BOT_FANCY_NAME", "𝐒ᴀɴs 𝐗 𝐌ᴜsɪᴄ !!🇨🇦")
     await loading_1.edit_text(f"<emoji id='5413840936994097463'>🌺</emoji> <b>{fancy_name} ♪\nsᴛᴧʀᴛed!</b>")
     await asyncio.sleep(0.5)
     await loading_1.delete()
