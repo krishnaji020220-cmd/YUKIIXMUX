@@ -92,8 +92,8 @@ def get_raw_markup(markup):
                         raw_btn["url"] = btn.url
                     if hasattr(btn, "style"): 
                         raw_btn["style"] = btn.style
-                    if hasattr(btn, "icon_custom_emoji_id"): 
-                        raw_btn["icon_custom_emoji_id"] = str(btn.icon_custom_emoji_id)
+                    if hasattr(btn, "style") and btn.style: 
+                        raw_btn["style"] = btn.style.value if hasattr(btn.style, "value") else str(btn.style)
                     raw_row.append(raw_btn)
             raw_kb.append(raw_row)
         return raw_kb
