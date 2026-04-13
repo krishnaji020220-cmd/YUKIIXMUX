@@ -90,10 +90,12 @@ def get_raw_markup(markup):
                         raw_btn["callback_data"] = btn.callback_data
                     if getattr(btn, "url", None): 
                         raw_btn["url"] = btn.url
-                    if hasattr(btn, "style"): 
-                        raw_btn["style"] = btn.style
+                    # 🔥 FIXED STYLE JSON SERIALIZATION 🔥
                     if hasattr(btn, "style") and btn.style: 
                         raw_btn["style"] = btn.style.value if hasattr(btn.style, "value") else str(btn.style)
+                    # 🔥 ADDED BACK CUSTOM EMOJI ID 🔥
+                    if hasattr(btn, "icon_custom_emoji_id") and btn.icon_custom_emoji_id:
+                        raw_btn["icon_custom_emoji_id"] = str(btn.icon_custom_emoji_id)
                     raw_row.append(raw_btn)
             raw_kb.append(raw_row)
         return raw_kb
@@ -347,4 +349,4 @@ async def welcome(client, message: Message):
 
         except Exception as ex:
             pass
-                     
+            
